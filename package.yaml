@@ -42,6 +42,7 @@ default-extensions:
   - DeriveLift
   - DeriveTraversable
   - DerivingStrategies
+  - DerivingVia
   - EmptyCase
   - ExistentialQuantification
   - FlexibleContexts
@@ -105,8 +106,8 @@ benchmarks:
     main: Main.hs
     dependencies:
       - base
-      - criterion
       - constrained-categories
+      - criterion
     ghc-options:
       - -rtsopts
       - -threaded
@@ -119,11 +120,13 @@ tests:
     dependencies:
       - QuickCheck
       - base
+      - binary
+      - constrained-categories
       - tasty
       - tasty-discover
       - tasty-hspec
       - tasty-quickcheck
-      - constrained-categories
+      - vector-th-unbox
     ghc-options:
       - -rtsopts
       - -threaded

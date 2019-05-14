@@ -46,6 +46,13 @@ instance Cartesian (-#>) where
   it = PFun (\_ -> ())
   unitArrow x = PFun (\_ -> x)
 
+instance CartesianLaws (-#>) where
+  lunit x = ((), x)
+  runit x = (x, ())
+  assoc (x, (y, z)) = ((x, y), z)
+  reassoc ((x, y), z) = (x, (y, z))
+  swap (x, y) = (y, x)
+
 
 
 derivingUnbox "Monoid_Sum"
