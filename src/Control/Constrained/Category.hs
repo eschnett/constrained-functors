@@ -5,8 +5,19 @@ module Control.Constrained.Category
   ( -- * Categories
     ObjKind, MorKind, CatKind
   , Category(..)
+  , law_Category_evalId
+  , law_Category_leftId
+  , law_Category_rightId
+  , law_Category_assoc
     -- * Cartesian, cocartesian, and closed categories
   , Cartesian(..)
+  , CartesianLaws(..)
+  , law_Cartesian_leftUnit1
+  , law_Cartesian_leftUnit2
+  , law_Cartesian_rightUnit1
+  , law_Cartesian_rightUnit2
+  , law_Cartesian_assoc
+  , law_Cartesian_reassoc
   , const
   , runUnitArrow
   , Cocartesian(..)
@@ -45,6 +56,24 @@ class Category (k :: CatKind) where
 
 
 
+law_Category_evalId :: forall k a. Category k => Ok k a
+                    => a -> (a, a)
+law_Category_evalId x = (x, eval @k id x)
+
+law_Category_leftId :: Category k => Ok k a => Ok k b
+                    => k a b -> (k a b, k a b)
+law_Category_leftId f = (id . f, f)
+
+law_Category_rightId :: Category k => Ok k a => Ok k b
+                     => k a b -> (k a b, k a b)
+law_Category_rightId f = (f . id, f)
+
+law_Category_assoc :: Category k => Ok k a => Ok k b => Ok k c => Ok k d
+                   => k c d -> k b c -> k a b -> (k a d, k a d)
+law_Category_assoc h g f = ((h . g) . f, h . (g . f))
+
+
+
 --------------------------------------------------------------------------------
 
 
@@ -59,8 +88,8 @@ class (Category k, Ok k (Unit k)) => Cartesian k where
   proveCartesian :: forall a b. (Ok k a, Ok k b) :- Ok k (Product k a b)
 
   -- | The category's product type
-  -- prop> a -> (p u a)                 -- lunit
-  -- prop> a -> (p a u)                 -- runit
+  -- prop> a -> p u a                   -- lunit
+  -- prop> a -> p a u                   -- runit
   -- prop> p a (p b c) -> p (p a b) c   -- assoc
   -- prop> p (p a b) c -> p a (p b c)   -- reassoc
   -- prop> p a b -> p b a               -- swap
@@ -103,6 +132,57 @@ const x = unitArrow x . it
 
 runUnitArrow :: forall k a u. Cartesian k => u ~ Unit k => Ok k a => k u a -> a
 runUnitArrow f = eval f (unit @k)
+
+
+
+class Cartesian k => CartesianLaws k where
+  lunit :: p ~ Product k => u ~ Unit k => Ok k a => a -> p u a
+  runit :: p ~ Product k => u ~ Unit k => Ok k a => a -> p a u
+  assoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
+        => p a (p b c) -> p (p a b) c
+  reassoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
+          => p (p a b) c -> p a (p b c)
+  swap :: p ~ Product k => Ok k a => Ok k b => p a b -> p b a
+
+law_Cartesian_leftUnit1 :: forall k a p u.
+                           CartesianLaws k => p ~ Product k => u ~ Unit k
+                        => Ok k a
+                        => a -> (a, a)
+law_Cartesian_leftUnit1 x = (x, eval (exr @k) (lunit @k x))
+                            \\ proveCartesian @k @u @a
+
+law_Cartesian_leftUnit2 :: forall k a p u.
+                           CartesianLaws k => p ~ Product k => u ~ Unit k
+                        => Ok k a
+                        => p u a -> (p u a, p u a)
+law_Cartesian_leftUnit2 p = (p, lunit @k (eval @k exr p))
+                            \\ proveCartesian @k @u @a
+
+law_Cartesian_rightUnit1 :: forall k a p u.
+                            CartesianLaws k => p ~ Product k => u ~ Unit k
+                         => Ok k a
+                         => a -> (a, a)
+law_Cartesian_rightUnit1 x = (x, eval (exl @k) (runit @k x))
+                            \\ proveCartesian @k @a @u
+
+law_Cartesian_rightUnit2 :: forall k a p u.
+                            CartesianLaws k => p ~ Product k => u ~ Unit k
+                         => Ok k a
+                         => p a u -> (p a u, p a u)
+law_Cartesian_rightUnit2 p = (p, runit @k (eval @k exl p))
+                            \\ proveCartesian @k @a @u
+
+law_Cartesian_assoc :: forall k a b c p.
+                       CartesianLaws k
+                    => p ~ Product k => Ok k a => Ok k b => Ok k c
+                    => p a (p b c) -> (p a (p b c), p a (p b c))
+law_Cartesian_assoc p = (p, (reassoc @k) (assoc @k p))
+
+law_Cartesian_reassoc :: forall k a b c p.
+                         CartesianLaws k
+                      => p ~ Product k => Ok k a => Ok k b => Ok k c
+                      => p (p a b) c -> (p (p a b) c, p (p a b) c)
+law_Cartesian_reassoc p = (p, (assoc @k) (reassoc @k p))
 
 
 
@@ -202,6 +282,13 @@ instance Cartesian (->) where
   fork f g = \x -> (f x, g x)
   it = P.const ()
   unitArrow = P.const
+
+instance CartesianLaws (->) where
+  lunit = \x -> ((), x)
+  runit = \x -> (x, ())
+  assoc = \(x, (y, z)) -> ((x, y), z)
+  reassoc = \((x, y), z) -> (x, (y, z))
+  swap = \(x, y) -> (y, x)
 
 instance Cocartesian (->) where
   proveCocartesian = Sub Dict

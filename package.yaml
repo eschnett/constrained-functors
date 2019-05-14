@@ -117,9 +117,12 @@ tests:
     source-dirs: test
     main: Main.hs
     dependencies:
+      - QuickCheck
       - base
       - tasty
+      - tasty-discover
       - tasty-hspec
+      - tasty-quickcheck
       - constrained-categories
     ghc-options:
       - -rtsopts
