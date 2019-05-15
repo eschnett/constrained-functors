@@ -9,7 +9,7 @@ module Control.Constrained.Category
   , law_Category_leftId
   , law_Category_rightId
   , law_Category_assoc
-    -- * Cartesian, cocartesian, and closed categories
+    -- * Cartesian categories
   , Cartesian(..)
   , const
   , runUnitArrow
@@ -23,8 +23,8 @@ module Control.Constrained.Category
   , law_Cartesian_leftFork
   , law_Cartesian_rightFork
   , law_Cartesian_dup
+    -- * Cocartesian categories
   , Cocartesian(..)
-  , CocartesianLaws(..) -- TODO: REMOVE; TODO: laws should be morphisms
   , law_Cocartesian_leftZero1
   , law_Cocartesian_leftZero2
   , law_Cocartesian_rightZero1
@@ -35,6 +35,7 @@ module Control.Constrained.Category
   , law_Cocartesian_leftJoin
   , law_Cocartesian_rightJoin
   , law_Cocartesian_jam
+    -- * Closed categories
   , Closed(..)
   , law_Closed_apply
   , law_Closed_curry
@@ -98,8 +99,8 @@ law_Category_assoc h g f = ((h . g) . f, h . (g . f))
 
 -- | A Cartesian category has products
 class (Category k, Ok k (Unit k)) => Cartesian k where
-  {-# MINIMAL proveCartesian, prod, unit, exl, exr, (fork | dup), it,
-              unitArrow, lunit, runit, assoc, reassoc, swap #-}
+  {-# MINIMAL proveCartesian, prod, unit, exl, exr, (fork | dup), it, unitArrow,
+              lunit, runit, assoc, reassoc, swap #-}
 
   -- | Prove that the category is Cartesian, i.e. that the product is
   -- an object in the category
@@ -242,7 +243,8 @@ law_Cartesian_dup = (fork id id, dup)
 
 -- | A Cocartesian category has coproducts (sums)
 class (Category k, Ok k (Zero k)) => Cocartesian k where
-  {-# MINIMAL proveCocartesian, coprod, inl, inr, (join | jam), absurd #-}
+  {-# MINIMAL proveCocartesian, coprod, inl, inr, (join | jam), absurd, lzero,
+              rzero, coassoc, coreassoc, coswap #-}
 
   -- | Prove that the category is Cartesian, i.e. that the coproduct
   -- is an object in the category
@@ -284,61 +286,70 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
   -- | Map the zero object to any object
   absurd :: z ~ Zero k => Ok k a => k z a
 
-
-
-class Cocartesian k => CocartesianLaws k where
-  lzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => s z a -> a
-  rzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => s a z -> a
+  lzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => k (s z a) a
+  rzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => k (s a z) a
   coassoc :: s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-          => s (s a b) c -> s a (s b c)
+          => k (s (s a b) c) (s a (s b c))
   coreassoc :: s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-            => s a (s b c) -> s (s a b) c
-  coswap :: s ~ Coproduct k => Ok k a => Ok k b => s a b -> s b a
+            => k (s a (s b c)) (s (s a b) c)
+  coswap :: s ~ Coproduct k => Ok k a => Ok k b => k (s a b) (s b a)
+
+
 
 law_Cocartesian_leftZero1 :: forall k a s z.
-                             CocartesianLaws k => s ~ Coproduct k => z ~ Zero k
+                             Cocartesian k => s ~ Coproduct k => z ~ Zero k
                           => Ok k a
                           => a -> (a, a)
-law_Cocartesian_leftZero1 x = (x, lzero @k (eval (inr @k @z @a) x))
+law_Cocartesian_leftZero1 x = (x, eval (lzero @k . inr @k @z @a) x)
                               \\ proveCocartesian @k @z @a
 
 law_Cocartesian_leftZero2 :: forall k a s z.
-                             CocartesianLaws k => s ~ Coproduct k => z ~ Zero k
+                             Cocartesian k => s ~ Coproduct k => z ~ Zero k
                           => Ok k a
                           => s z a -> (s z a, s z a)
-law_Cocartesian_leftZero2 s = (s, (eval (inr @k) (lzero @k s)))
+law_Cocartesian_leftZero2 s = (s, eval (inr @k . lzero @k) s)
                               \\ proveCocartesian @k @z @a
 
 law_Cocartesian_rightZero1 :: forall k a s z.
-                              CocartesianLaws k => s ~ Coproduct k => z ~ Zero k
+                              Cocartesian k => s ~ Coproduct k => z ~ Zero k
                            => Ok k a
                            => a -> (a, a)
-law_Cocartesian_rightZero1 x = (x, rzero @k (eval (inl @k @a @z) x))
-                              \\ proveCocartesian @k @a @z
+law_Cocartesian_rightZero1 x = (x, eval (rzero @k . inl @k @a @z) x)
+                               \\ proveCocartesian @k @a @z
 
 law_Cocartesian_rightZero2 :: forall k a s z.
-                              CocartesianLaws k => s ~ Coproduct k => z ~ Zero k
+                              Cocartesian k => s ~ Coproduct k => z ~ Zero k
                            => Ok k a
                            => s a z -> (s a z, s a z)
-law_Cocartesian_rightZero2 s = (s, (eval (inl @k) (rzero @k s)))
-                              \\ proveCocartesian @k @a @z
+law_Cocartesian_rightZero2 s = (s, eval (inl @k . rzero @k) s)
+                               \\ proveCocartesian @k @a @z
 
 law_Cocartesian_assoc :: forall k a b c s.
-                         CocartesianLaws k
+                         Cocartesian k
                       => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
                       => s (s a b) c -> (s (s a b) c, s (s a b) c)
-law_Cocartesian_assoc s = (s, (coreassoc @k) (coassoc @k s))
+law_Cocartesian_assoc s = (s, eval (coreassoc @k . coassoc @k) s)
+                          \\ proveCocartesian @k @(s a b) @c
+                          \\ proveCocartesian @k @a @(s b c)
+                          \\ proveCocartesian @k @a @b
+                          \\ proveCocartesian @k @b @c
 
 law_Cocartesian_reassoc :: forall k a b c s.
-                           CocartesianLaws k
+                           Cocartesian k
                         => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
                         => s a (s b c) -> (s a (s b c), s a (s b c))
-law_Cocartesian_reassoc s = (s, (coassoc @k) (coreassoc @k s))
+law_Cocartesian_reassoc s = (s, eval (coassoc @k . coreassoc @k) s)
+                            \\ proveCocartesian @k @(s a b) @c
+                            \\ proveCocartesian @k @a @(s b c)
+                            \\ proveCocartesian @k @a @b
+                            \\ proveCocartesian @k @b @c
 
 law_Cocartesian_swap :: forall k a b s.
-                        CocartesianLaws k => s ~ Coproduct k => Ok k a => Ok k b
+                        Cocartesian k => s ~ Coproduct k => Ok k a => Ok k b
                      => s a b -> (s a b, s a b)
-law_Cocartesian_swap s = (s, coswap @k (coswap @k s))
+law_Cocartesian_swap s = (s, eval (coswap @k . coswap @k) s)
+                         \\ proveCocartesian @k @b @a
+                         \\ proveCocartesian @k @a @b
 
 law_Cocartesian_leftJoin :: forall k a b c s.
                             Cocartesian k => s ~ Coproduct k
@@ -442,19 +453,18 @@ instance Cocartesian (->) where
   join = either
   absurd = Data.Void.absurd
 
-instance CocartesianLaws (->) where
-  lzero (Left _) = error "Void"
-  lzero (Right x) = x
-  rzero (Left x) = x
-  rzero (Right _) = error "Void"
-  coassoc (Left (Left x)) = Left x
-  coassoc (Left (Right y)) = Right (Left y)
-  coassoc (Right z) = Right (Right z)
-  coreassoc (Left x) = Left (Left x)
-  coreassoc (Right (Left y)) = Left (Right y)
-  coreassoc (Right (Right z)) = Right z
-  coswap (Left x) = Right x
-  coswap (Right y) = Left y
+  lzero = \case Left _ -> error "Void"
+                Right x -> x
+  rzero = \case Left x -> x
+                Right _ -> error "Void"
+  coassoc = \case Left (Left x) -> Left x
+                  Left (Right y) -> Right (Left y)
+                  Right z -> Right (Right z)
+  coreassoc = \case Left x -> Left (Left x)
+                    Right (Left y) -> Left (Right y)
+                    Right (Right z) -> Right z
+  coswap = \case Left x -> Right x
+                 Right y -> Left y
 
 instance Closed (->) where
   proveClosed = Sub Dict
