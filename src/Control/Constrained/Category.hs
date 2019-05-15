@@ -13,7 +13,6 @@ module Control.Constrained.Category
   , Cartesian(..)
   , const
   , runUnitArrow
-  , CartesianLaws(..)
   , law_Cartesian_leftUnit1
   , law_Cartesian_leftUnit2
   , law_Cartesian_rightUnit1
@@ -23,8 +22,9 @@ module Control.Constrained.Category
   , law_Cartesian_swap
   , law_Cartesian_leftFork
   , law_Cartesian_rightFork
+  , law_Cartesian_dup
   , Cocartesian(..)
-  , CocartesianLaws(..)
+  , CocartesianLaws(..) -- TODO: REMOVE; TODO: laws should be morphisms
   , law_Cocartesian_leftZero1
   , law_Cocartesian_leftZero2
   , law_Cocartesian_rightZero1
@@ -34,6 +34,7 @@ module Control.Constrained.Category
   , law_Cocartesian_swap
   , law_Cocartesian_leftJoin
   , law_Cocartesian_rightJoin
+  , law_Cocartesian_jam
   , Closed(..)
   , law_Closed_apply
   , law_Closed_curry
@@ -98,7 +99,7 @@ law_Category_assoc h g f = ((h . g) . f, h . (g . f))
 -- | A Cartesian category has products
 class (Category k, Ok k (Unit k)) => Cartesian k where
   {-# MINIMAL proveCartesian, prod, unit, exl, exr, (fork | dup), it,
-              unitArrow #-}
+              unitArrow, lunit, runit, assoc, reassoc, swap #-}
 
   -- | Prove that the category is Cartesian, i.e. that the product is
   -- an object in the category
@@ -107,8 +108,8 @@ class (Category k, Ok k (Unit k)) => Cartesian k where
   -- | The category's product type
   -- prop> a -> p u a                   -- lunit
   -- prop> a -> p a u                   -- runit
-  -- prop> p a (p b c) -> p (p a b) c   -- assoc
-  -- prop> p (p a b) c -> p a (p b c)   -- reassoc
+  -- prop> p (p a b) c -> p a (p b c)   -- assoc
+  -- prop> p a (p b c) -> p (p a b) c   -- reassoc
   -- prop> p a b -> p b a               -- swap
   type Product k :: Type -> Type -> Type
   -- | A unit type for this product
@@ -144,6 +145,14 @@ class (Category k, Ok k (Unit k)) => Cartesian k where
   -- | A value is equivalent to a morphism from the unit
   unitArrow :: u ~ Unit k => Ok k a => a -> k u a
 
+  lunit :: p ~ Product k => u ~ Unit k => Ok k a => k a (p u a)
+  runit :: p ~ Product k => u ~ Unit k => Ok k a => k a (p a u)
+  assoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
+        => k (p (p a b) c) (p a (p b c))
+  reassoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
+          => k (p a (p b c)) (p (p a b) c)
+  swap :: p ~ Product k => Ok k a => Ok k b => k (p a b) (p b a)
+
 const :: forall k a b. Cartesian k => Ok k a => Ok k b => a -> k b a
 const x = unitArrow x . it
 
@@ -152,59 +161,60 @@ runUnitArrow f = eval f (unit @k)
 
 
 
-class Cartesian k => CartesianLaws k where
-  lunit :: p ~ Product k => u ~ Unit k => Ok k a => a -> p u a
-  runit :: p ~ Product k => u ~ Unit k => Ok k a => a -> p a u
-  assoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
-        => p a (p b c) -> p (p a b) c
-  reassoc :: p ~ Product k => Ok k a => Ok k b => Ok k c
-          => p (p a b) c -> p a (p b c)
-  swap :: p ~ Product k => Ok k a => Ok k b => p a b -> p b a
-
 law_Cartesian_leftUnit1 :: forall k a p u.
-                           CartesianLaws k => p ~ Product k => u ~ Unit k
+                           Cartesian k => p ~ Product k => u ~ Unit k
                         => Ok k a
                         => a -> (a, a)
-law_Cartesian_leftUnit1 x = (x, eval (exr @k) (lunit @k x))
+law_Cartesian_leftUnit1 x = (x, eval (exr @k . lunit @k) x)
                             \\ proveCartesian @k @u @a
 
 law_Cartesian_leftUnit2 :: forall k a p u.
-                           CartesianLaws k => p ~ Product k => u ~ Unit k
+                           Cartesian k => p ~ Product k => u ~ Unit k
                         => Ok k a
                         => p u a -> (p u a, p u a)
-law_Cartesian_leftUnit2 p = (p, lunit @k (eval @k exr p))
+law_Cartesian_leftUnit2 p = (p, eval (lunit @k . exr @k) p)
                             \\ proveCartesian @k @u @a
 
 law_Cartesian_rightUnit1 :: forall k a p u.
-                            CartesianLaws k => p ~ Product k => u ~ Unit k
+                            Cartesian k => p ~ Product k => u ~ Unit k
                          => Ok k a
                          => a -> (a, a)
-law_Cartesian_rightUnit1 x = (x, eval (exl @k) (runit @k x))
-                            \\ proveCartesian @k @a @u
+law_Cartesian_rightUnit1 x = (x, eval (exl @k . runit @k) x)
+                             \\ proveCartesian @k @a @u
 
 law_Cartesian_rightUnit2 :: forall k a p u.
-                            CartesianLaws k => p ~ Product k => u ~ Unit k
+                            Cartesian k => p ~ Product k => u ~ Unit k
                          => Ok k a
                          => p a u -> (p a u, p a u)
-law_Cartesian_rightUnit2 p = (p, runit @k (eval @k exl p))
-                            \\ proveCartesian @k @a @u
+law_Cartesian_rightUnit2 p = (p, eval (runit @k . exl @k) p)
+                             \\ proveCartesian @k @a @u
 
 law_Cartesian_assoc :: forall k a b c p.
-                       CartesianLaws k
+                       Cartesian k
                     => p ~ Product k => Ok k a => Ok k b => Ok k c
-                    => p a (p b c) -> (p a (p b c), p a (p b c))
-law_Cartesian_assoc p = (p, (reassoc @k) (assoc @k p))
+                    => p (p a b) c -> (p (p a b) c, p (p a b) c)
+law_Cartesian_assoc p = (p, eval (reassoc @k . assoc @k) p)
+                        \\ proveCartesian @k @(p a b) @c
+                        \\ proveCartesian @k @a @(p b c)
+                        \\ proveCartesian @k @a @b
+                        \\ proveCartesian @k @b @c
 
 law_Cartesian_reassoc :: forall k a b c p.
-                         CartesianLaws k
+                         Cartesian k
                       => p ~ Product k => Ok k a => Ok k b => Ok k c
-                      => p (p a b) c -> (p (p a b) c, p (p a b) c)
-law_Cartesian_reassoc p = (p, (assoc @k) (reassoc @k p))
+                      => p a (p b c) -> (p a (p b c), p a (p b c))
+law_Cartesian_reassoc p = (p, eval (assoc @k . reassoc @k) p)
+                        \\ proveCartesian @k @(p a b) @c
+                        \\ proveCartesian @k @a @(p b c)
+                        \\ proveCartesian @k @a @b
+                        \\ proveCartesian @k @b @c
 
 law_Cartesian_swap :: forall k a b p.
-                      CartesianLaws k => p ~ Product k => Ok k a => Ok k b
+                      Cartesian k => p ~ Product k => Ok k a => Ok k b
                    => p a b -> (p a b, p a b)
-law_Cartesian_swap p = (p, swap @k (swap @k p))
+law_Cartesian_swap p = (p, eval (swap @k . swap @k) p)
+                       \\ proveCartesian @k @b @a
+                       \\ proveCartesian @k @a @b
 
 law_Cartesian_leftFork :: forall k a b c p.
                           Cartesian k => p ~ Product k
@@ -220,6 +230,10 @@ law_Cartesian_rightFork :: forall k a b c p.
 law_Cartesian_rightFork f g = (g, exr . fork f g)
                               \\ proveCartesian @k @b @c
 
+law_Cartesian_dup :: forall k a p.
+                     Cartesian k => p ~ Product k => Ok k a
+                  => (k a (p a a), k a (p a a))
+law_Cartesian_dup = (fork id id, dup)
 
 
 --------------------------------------------------------------------------------
@@ -237,8 +251,8 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
   -- | The category's coproduct (sum) type
   -- prop> s z a -> a                   -- lzero
   -- prop> s a z -> a                   -- rzero
-  -- prop> s a (s b c) -> s (s a b) c   -- coassoc
-  -- prop> s (s a b) c -> s a (s b c)   -- coreassoc
+  -- prop> s (s a b) c -> s a (s b c)   -- coassoc
+  -- prop> s a (s b c) -> s (s a b) c   -- coreassoc
   -- prop> s a b -> s b a               -- coswap
   type Coproduct k :: Type -> Type -> Type
 
@@ -276,9 +290,9 @@ class Cocartesian k => CocartesianLaws k where
   lzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => s z a -> a
   rzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => s a z -> a
   coassoc :: s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-          => s a (s b c) -> s (s a b) c
+          => s (s a b) c -> s a (s b c)
   coreassoc :: s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-            => s (s a b) c -> s a (s b c)
+            => s a (s b c) -> s (s a b) c
   coswap :: s ~ Coproduct k => Ok k a => Ok k b => s a b -> s b a
 
 law_Cocartesian_leftZero1 :: forall k a s z.
@@ -312,13 +326,13 @@ law_Cocartesian_rightZero2 s = (s, (eval (inl @k) (rzero @k s)))
 law_Cocartesian_assoc :: forall k a b c s.
                          CocartesianLaws k
                       => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-                      => s a (s b c) -> (s a (s b c), s a (s b c))
+                      => s (s a b) c -> (s (s a b) c, s (s a b) c)
 law_Cocartesian_assoc s = (s, (coreassoc @k) (coassoc @k s))
 
 law_Cocartesian_reassoc :: forall k a b c s.
                            CocartesianLaws k
                         => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-                        => s (s a b) c -> (s (s a b) c, s (s a b) c)
+                        => s a (s b c) -> (s a (s b c), s a (s b c))
 law_Cocartesian_reassoc s = (s, (coassoc @k) (coreassoc @k s))
 
 law_Cocartesian_swap :: forall k a b s.
@@ -339,6 +353,11 @@ law_Cocartesian_rightJoin :: forall k a b c s.
                           => k a c -> k b c -> (k b c, k b c)
 law_Cocartesian_rightJoin f g = (g, join f g . inr)
                                 \\ proveCocartesian @k @a @b
+
+law_Cocartesian_jam :: forall k a s.
+                       Cocartesian k => s ~ Coproduct k => Ok k a
+                    => (k (s a a) a, k (s a a) a)
+law_Cocartesian_jam = (jam, join id id)
 
 
 
@@ -406,12 +425,10 @@ instance Cartesian (->) where
   fork f g = \x -> (f x, g x)
   it = P.const ()
   unitArrow = P.const
-
-instance CartesianLaws (->) where
   lunit x = ((), x)
   runit x = (x, ())
-  assoc (x, (y, z)) = ((x, y), z)
-  reassoc ((x, y), z) = (x, (y, z))
+  assoc ((x, y), z) = (x, (y, z))
+  reassoc (x, (y, z)) = ((x, y), z)
   swap (x, y) = (y, x)
 
 instance Cocartesian (->) where
@@ -430,12 +447,12 @@ instance CocartesianLaws (->) where
   lzero (Right x) = x
   rzero (Left x) = x
   rzero (Right _) = error "Void"
-  coassoc (Left x) = Left (Left x)
-  coassoc (Right (Left y)) = Left (Right y)
-  coassoc (Right (Right z)) = Right z
-  coreassoc (Left (Left x)) = Left x
-  coreassoc (Left (Right y)) = Right (Left y)
-  coreassoc (Right z) = Right (Right z)
+  coassoc (Left (Left x)) = Left x
+  coassoc (Left (Right y)) = Right (Left y)
+  coassoc (Right z) = Right (Right z)
+  coreassoc (Left x) = Left (Left x)
+  coreassoc (Right (Left y)) = Left (Right y)
+  coreassoc (Right (Right z)) = Right z
   coswap (Left x) = Right x
   coswap (Right y) = Left y
 

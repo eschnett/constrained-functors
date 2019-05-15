@@ -3,9 +3,14 @@
 
 module Control.Constrained.Functor
   ( Functor(..)
+  , law_Functor_id
+  , law_Functor_compose
   , Foldable(..)
   , Apply(..)
+  , law_Apply_assoc
   , Applicative(..)
+  , law_Applicative_leftUnit
+  , law_Applicative_rightUnit
   , Traversable(..)
   , Monad(..)
   , (=<<), (>>=)
@@ -37,6 +42,23 @@ class (Category (Dom f), Category (Cod f)) => Functor f where
   type Cod f :: CatKind
   -- | Map a morphism
   fmap :: Ok (Dom f) a => Ok (Dom f) b => Dom f a b -> Cod f (f a) (f b)
+
+
+
+law_Functor_id :: forall f a k l.
+                  Functor f => k ~ Dom f => l ~ Cod f => Ok k a
+               => (l (f a) (f a), l (f a) (f a))
+law_Functor_id = (fmap (id @k), id @l)
+                 \\ proveFunctor @f @a
+
+law_Functor_compose :: forall f a b c k l.
+                       Functor f => k ~ Dom f => l ~ Cod f
+                    => Ok k a => Ok k b => Ok k c
+                    => k b c -> k a b -> (l (f a) (f c), l (f a) (f c))
+law_Functor_compose g f = (fmap (g . f), fmap g . fmap f)
+                          \\ proveFunctor @f @a
+                          \\ proveFunctor @f @b
+                          \\ proveFunctor @f @c
 
 
 
@@ -78,6 +100,42 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
 
 
 
+-- | Associativity (see <https://ncatlab.org/nlab/show/monoidal+functor>):
+-- prop> ((f a, f b), f c) -> (f (a, b), f c) -> f ((a, b), c) -> f (a, (b, c))
+-- prop> ((f a, f b), f c) -> (f a, (f b, f c)) -> (f a, f (b, c)) -> f (a, (b, c))
+law_Apply_assoc :: forall f a b c k l p q.
+                   Apply f
+                => k ~ Dom f => l ~ Cod f => p ~ Product k => q ~ Product l
+                => Ok k a => Ok k b => Ok k c
+                => q (q (f a) (f b)) (f c) -> (f (p a (p b c)), f (p a (p b c)))
+law_Apply_assoc xs =
+  ( eval (fmap (assoc @k) .
+          liftA2uu @f (id @k) .
+          prod @l (liftA2uu @f (id @k)) (id @l)) xs
+  , eval (liftA2uu @f (id @k) .
+          prod @l (id @l) (liftA2uu @f (id @k)) .
+          assoc @l) xs
+  )
+  \\ proveCartesian @l @(f a) @(q (f b) (f c))
+  \\ proveCartesian @l @(q (f a) (f b)) @(f c)
+  \\ proveCartesian @l @(f a) @(f (p b c))
+  \\ proveCartesian @l @(f (p a b)) @(f c)
+  \\ proveCartesian @l @(f b) @(f c)
+  \\ proveCartesian @l @(f a) @(f b)
+  \\ proveFunctor @f @(p a (p b c))
+  \\ proveFunctor @f @(p (p a b) c)
+  \\ proveFunctor @f @(p b c)
+  \\ proveFunctor @f @(p a b)
+  \\ proveCartesian @k @a @(p b c)
+  \\ proveCartesian @k @(p a b) @c
+  \\ proveCartesian @k @b @c
+  \\ proveCartesian @k @a @b
+  \\ proveFunctor @f @a
+  \\ proveFunctor @f @b
+  \\ proveFunctor @f @c
+
+
+
 --------------------------------------------------------------------------------
 
 
@@ -87,6 +145,61 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
 class Apply f => Applicative f where
   -- | Create a functor
   pure :: Ok (Dom f) a => a -> f a
+
+
+
+-- | Unitality (see <https://ncatlab.org/nlab/show/monoidal+functor>):
+-- Left unitality:
+-- prop> (u, f a) -> f a
+-- prop> (u, f a) -> (f u, f a) -> f (u, a) -> f a
+-- Right unitality:
+-- prop> (f a, u) -> f a
+-- prop> (f a, u) -> (f a, f u) -> f (a, u) -> f a
+law_Applicative_leftUnit :: forall f a k l p q u v.
+                            Applicative f
+                         => k ~ Dom f => p ~ Product k => u ~ Unit k
+                         => l ~ Cod f => q ~ Product l => v ~ Unit l
+                         => Ok k a
+                         => q v (f a) -> (f a, f a)
+law_Applicative_leftUnit xs =
+  ( eval (exr @l) xs
+  , eval (fmap (exr @k) . liftA2uu @f (id @k) . prod @l pure' (id @l)) xs
+  )
+  \\ proveCartesian @l @(f u) @(f a)
+  \\ proveCartesian @l @v @(f a)
+  \\ proveCartesian @k @u @a
+  \\ proveFunctor @f @(p u a)
+  \\ proveCartesian @k @u @a
+  \\ proveFunctor @f @a
+  \\ proveFunctor @f @u
+  where -- pure :: a -> f a
+        -- pure_u :: u -> f u
+        pure' :: l v (f u)
+        pure' = unitArrow @l (pure @f (unit @k))
+                \\ proveFunctor @f @u
+
+law_Applicative_rightUnit :: forall f a k l p q u v.
+                             Applicative f
+                          => k ~ Dom f => p ~ Product k => u ~ Unit k
+                          => l ~ Cod f => q ~ Product l => v ~ Unit l
+                          => Ok k a
+                          => q (f a) v -> (f a, f a)
+law_Applicative_rightUnit xs =
+  ( eval (exl @l) xs
+  , eval (fmap (exl @k) . liftA2uu @f (id @k) . prod @l (id @l) pure') xs
+  )
+  \\ proveCartesian @l @(f a) @(f u)
+  \\ proveCartesian @l @(f a) @v
+  \\ proveCartesian @k @a @u
+  \\ proveFunctor @f @(p a u)
+  \\ proveCartesian @k @a @u
+  \\ proveFunctor @f @a
+  \\ proveFunctor @f @u
+  where -- pure :: a -> f a
+        -- pure_u :: u -> f u
+        pure' :: l v (f u)
+        pure' = unitArrow @l (pure @f (unit @k))
+                \\ proveFunctor @f @u
 
 
 

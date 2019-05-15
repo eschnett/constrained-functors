@@ -14,6 +14,7 @@ import Control.Constrained.Category
 import Control.Constrained.Functor
 import Data.Binary
 import Data.Constraint
+import Data.Coerce
 import qualified Data.Monoid as M
 import qualified Data.Vector.Unboxed as U
 import Data.Vector.Unboxed.Deriving
@@ -45,20 +46,16 @@ instance Cartesian (-#>) where
   fork (PFun f) (PFun g) = PFun \x -> (f x, g x)
   it = PFun (\_ -> ())
   unitArrow x = PFun (\_ -> x)
-
-instance CartesianLaws (-#>) where
-  lunit x = ((), x)
-  runit x = (x, ())
-  assoc (x, (y, z)) = ((x, y), z)
-  reassoc ((x, y), z) = (x, (y, z))
-  swap (x, y) = (y, x)
+  lunit = PFun \x -> ((), x)
+  runit = PFun \x -> (x, ())
+  assoc = PFun \((x, y), z) -> (x, (y, z))
+  reassoc = PFun \(x, (y, z)) -> ((x, y), z)
+  swap = PFun \(x, y) -> (y, x)
 
 
 
 derivingUnbox "Monoid_Sum"
-    [t| forall a. U.Unbox a => M.Sum a -> a |]
-    [| \(M.Sum x) -> x |]
-    [| \x -> M.Sum x |]
+    [t| forall a. U.Unbox a => M.Sum a -> a |] [| coerce |] [| coerce |]
 
 
 
@@ -68,9 +65,7 @@ data PProxy a = PProxy
 instance Binary (PProxy a)
 
 derivingUnbox "PProxy"
-    [t| forall a. PProxy a -> () |]
-    [| \PProxy -> () |]
-    [| \() -> PProxy |]
+    [t| forall a. PProxy a -> () |] [| \PProxy -> () |] [| \() -> PProxy |]
 
 newtype PIdentity a = PIdentity a
   deriving (Eq, Ord, Read, Show, Generic)
@@ -78,9 +73,7 @@ newtype PIdentity a = PIdentity a
 instance Binary a => Binary (PIdentity a)
 
 derivingUnbox "PIdentity"
-    [t| forall a. U.Unbox a => PIdentity a -> a |]
-    [| \(PIdentity x) -> x |]
-    [| \x -> PIdentity x |]
+    [t| forall a. U.Unbox a => PIdentity a -> a |] [| coerce |] [| coerce |]
 
 data PTuple a b = PTuple a b
   deriving (Eq, Ord, Read, Show, Generic)
@@ -110,8 +103,8 @@ instance Binary (f (g a)) => Binary (PCompose f g a)
 
 derivingUnbox "PCompose"
     [t| forall f g a. U.Unbox (f (g a)) => PCompose f g a -> f (g a) |]
-    [| \(PCompose xss) -> xss |]
-    [| \xss -> PCompose xss |]
+    [| coerce |]
+    [| coerce |]
 
 
 
