@@ -2,7 +2,8 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 
 module Control.Constrained.Functor
-  ( Functor(..)
+  ( FunctorKind
+  , Functor(..)
   , law_Functor_id
   , law_Functor_compose
   , Foldable(..)
@@ -25,10 +26,8 @@ module Control.Constrained.Functor
   , Cokleisli(..)
   ) where
 
-import Prelude hiding ( id, (.), const, curry, uncurry
-                      , Applicative(..), Foldable(..), Functor(..), Monad(..)
-                      , Traversable(..)
-                      , (=<<))
+import qualified Prelude as P
+import Control.Constrained.Prelude
 
 import Control.Applicative (ZipList(..))
 import Control.Constrained.Category hiding (fork, join)
@@ -37,14 +36,20 @@ import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
 import qualified Data.Functor.Sum as F
+import Data.Kind
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Proxy
 
 
 
+-- | The kind of a functor
+type FunctorKind = Type -> Type
+
+
+
 -- | A functor
-class (Category (Dom f), Category (Cod f)) => Functor f where
+class (Category (Dom f), Category (Cod f)) => Functor (f :: FunctorKind) where
   -- | Prove that this functor maps from its domain to its codomain
   proveFunctor :: Ok (Dom f) a :- Ok (Cod f) (f a)
   -- | Domain
@@ -316,9 +321,16 @@ class (Functor f, Cod f ~ Dom f) => Monad f where
       => f a -> k a (f b) -> f b
 x >>= f = f =<< x
 
+
+
 newtype Kleisli f a b = Kleisli { runKleisli :: Dom f a (f b) }
 
--- TODO: 'Kleisli' is a 'Category'
+instance Monad f => Semigroupoid (Kleisli f) where
+  type Ok (Kleisli f) = Ok (Dom f)
+  Kleisli g . Kleisli f = Kleisli (g <=< f)
+
+instance Monad f => Category (Kleisli f) where
+  id = Kleisli return
 
 
 
@@ -348,15 +360,17 @@ class Semicomonad f => Comonad f where
   {-# MINIMAL extract #-}
   extract :: k ~ Dom f => Ok k a => k (f a) a
 
-newtype Cokleisli f a b = Cokleisli { runCokleisli :: Dom f (f a) b }
 
--- TOOD: make this work -- find out how to handle 'eval'
--- instance Comonad f => Category (Cokleisli f) where
---   type Ok (Cokleisli f) = Ok (Dom f)
---   id = Cokleisli extract
---   Cokleisli g . Cokleisli f = Cokleisli (g =<= f)
---   eval :: Ok (Dom f) a => Ok (Dom f) b => Cokleisli f a b -> a -> b
---   eval (Cokleisli f) = Cokleisli @(->) (eval f)
+
+newtype Cokleisli (f :: FunctorKind) a b =
+  Cokleisli { runCokleisli :: Dom f (f a) b }
+
+instance Semicomonad f => Semigroupoid (Cokleisli f) where
+  type Ok (Cokleisli f) = Ok (Dom f)
+  Cokleisli g . Cokleisli f = Cokleisli (g =<= f)
+
+instance Comonad f => Category (Cokleisli f) where
+  id = Cokleisli extract
 
 
 

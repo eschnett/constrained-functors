@@ -6,9 +6,8 @@ module Control.Constrained.Plain
   , type (-#>)(..)
   ) where
 
-import Prelude hiding ( id, (.)
-                      , Applicative(..), Foldable(..), Functor(..)
-                      , Traversable(..))
+import qualified Prelude as P
+import Control.Constrained.Prelude
 
 import Control.Constrained.Category
 import Control.Constrained.Functor
@@ -267,6 +266,6 @@ instance Foldable U.Vector where
   foldMap (PFun f) = U.foldl (\r x -> r <> f x) mempty
 
 instance Apply U.Vector where
-  liftA2uu (PFun f) = \(xs, ys) -> U.zipWith (\x y -> f (x, y)) xs ys
+  liftA2uu (PFun f) = uncurry (U.zipWith (curry f))
 
 --  Semicomonad

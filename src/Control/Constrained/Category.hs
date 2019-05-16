@@ -46,8 +46,8 @@ module Control.Constrained.Category
   , law_Closed_uncurry
   ) where
 
-import Prelude hiding ((.), const, curry, id, uncurry)
 import qualified Prelude as P
+import Control.Constrained.Prelude
 
 import Data.Constraint
 import Data.Kind

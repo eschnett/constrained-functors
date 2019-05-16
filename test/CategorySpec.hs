@@ -3,7 +3,8 @@
 
 module CategorySpec where
 
-import Prelude as P
+import qualified Prelude as P
+import Control.Constrained.Prelude
 
 import Control.Constrained.Category
 import Data.Void

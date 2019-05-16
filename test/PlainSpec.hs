@@ -4,6 +4,9 @@
 
 module PlainSpec where
 
+import qualified Prelude as P
+import Control.Constrained.Prelude
+
 import Control.Constrained.Category
 import Control.Constrained.Plain
 import Data.Binary

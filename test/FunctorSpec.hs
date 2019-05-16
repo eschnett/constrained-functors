@@ -3,6 +3,10 @@
 
 module FunctorSpec where
 
+import qualified Prelude as P
+import Control.Constrained.Prelude
+
+import Control.Constrained.Category
 import Control.Constrained.Functor
 import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
@@ -219,6 +223,27 @@ prop_List_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 prop_List_Applicative_rightUnit :: ([A], ()) -> Property
 prop_List_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
+prop_Kleisli_List_Semigroupoid_assoc ::
+  Fun C [A] -> Fun B [C] -> Fun A [B] -> A -> Property
+prop_Kleisli_List_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ hask $ law_Semigroupoid_assoc @(Kleisli []) h' g' f'
+  where f' = Kleisli f
+        g' = Kleisli g
+        h' = Kleisli h
+        hask (Kleisli p, Kleisli q) = (p, q)
+
+prop_Kleisli_List_Category_leftId :: Fun A [B] -> A -> Property
+prop_Kleisli_List_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Kleisli []) f'
+  where f' = Kleisli f
+        hask (Kleisli p, Kleisli q) = (p, q)
+
+prop_Kleisli_List_Category_rightId :: Fun A [B] -> A -> Property
+prop_Kleisli_List_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Kleisli []) f'
+  where f' = Kleisli f
+        hask (Kleisli p, Kleisli q) = (p, q)
+
 prop_List_Semicomonad_assoc :: Fun ([C]) A
                             -> Fun ([B]) C
                             -> Fun ([A]) B
@@ -263,6 +288,33 @@ prop_NonEmpty_Comonad_leftId (Fn f) = fcmp $ law_Comonad_leftId f
 prop_NonEmpty_Comonad_rightId ::
   Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
 prop_NonEmpty_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
+prop_Cokleisli_NonEmpty_Semigroupoid_assoc
+  :: Fun (NE.NonEmpty C) A
+  -> Fun (NE.NonEmpty B) C
+  -> Fun (NE.NonEmpty A) B
+  -> NE.NonEmpty A
+  -> Property
+prop_Cokleisli_NonEmpty_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ hask $ law_Semigroupoid_assoc @(Cokleisli NE.NonEmpty) h' g' f'
+  where f' = Cokleisli f
+        g' = Cokleisli g
+        h' = Cokleisli h
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_NonEmpty_Category_leftId ::
+  Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
+prop_Cokleisli_NonEmpty_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Cokleisli NE.NonEmpty) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_NonEmpty_Category_rightId ::
+  Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
+prop_Cokleisli_NonEmpty_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Cokleisli NE.NonEmpty) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
 
 
 
