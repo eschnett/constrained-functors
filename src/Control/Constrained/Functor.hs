@@ -113,19 +113,22 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
 
 -- | Associativity (see <https://ncatlab.org/nlab/show/monoidal+functor>):
 -- prop> ((f a, f b), f c) -> (f (a, b), f c) -> f ((a, b), c) -> f (a, (b, c))
--- prop> ((f a, f b), f c) -> (f a, (f b, f c)) -> (f a, f (b, c)) -> f (a, (b, c))
+-- prop> ((f a, f b), f c) -> (f a, (f b, f c)) -> (f a, f (b, c))
+--                         -> f (a, (b, c))
 law_Apply_assoc :: forall f a b c k l p q.
                    Apply f
                 => k ~ Dom f => l ~ Cod f => p ~ Product k => q ~ Product l
                 => Ok k a => Ok k b => Ok k c
-                => q (q (f a) (f b)) (f c) -> (f (p a (p b c)), f (p a (p b c)))
-law_Apply_assoc xs =
-  ( eval (fmap (assoc @k) .
-          liftA2uu @f (id @k) .
-          prod @l (liftA2uu @f (id @k)) (id @l)) xs
-  , eval (liftA2uu @f (id @k) .
-          prod @l (id @l) (liftA2uu @f (id @k)) .
-          assoc @l) xs
+                => ( l (q (q (f a) (f b)) (f c)) (f (p a (p b c)))
+                   , l (q (q (f a) (f b)) (f c)) (f (p a (p b c)))
+                   )
+law_Apply_assoc =
+  ( fmap (assoc @k) .
+    liftA2uu @f (id @k)
+    . prod @l (liftA2uu @f (id @k)) (id @l)
+  , liftA2uu @f (id @k) .
+    prod @l (id @l) (liftA2uu @f (id @k)) .
+    assoc @l
   )
   \\ proveCartesian @l @(f a) @(q (f b) (f c))
   \\ proveCartesian @l @(q (f a) (f b)) @(f c)
@@ -171,10 +174,10 @@ law_Applicative_leftUnit :: forall f a k l p q u v.
                          => k ~ Dom f => p ~ Product k => u ~ Unit k
                          => l ~ Cod f => q ~ Product l => v ~ Unit l
                          => Ok k a
-                         => q v (f a) -> (f a, f a)
-law_Applicative_leftUnit xs =
-  ( eval (exr @l) xs
-  , eval (fmap (exr @k) . liftA2uu @f (id @k) . prod @l pure' (id @l)) xs
+                         => (l (q v (f a)) (f a), l (q v (f a)) (f a))
+law_Applicative_leftUnit =
+  ( exr @l
+  , fmap (exr @k) . liftA2uu @f (id @k) . prod @l pure' (id @l)
   )
   \\ proveCartesian @l @(f u) @(f a)
   \\ proveCartesian @l @v @(f a)
@@ -194,10 +197,10 @@ law_Applicative_rightUnit :: forall f a k l p q u v.
                           => k ~ Dom f => p ~ Product k => u ~ Unit k
                           => l ~ Cod f => q ~ Product l => v ~ Unit l
                           => Ok k a
-                          => q (f a) v -> (f a, f a)
-law_Applicative_rightUnit xs =
-  ( eval (exl @l) xs
-  , eval (fmap (exl @k) . liftA2uu @f (id @k) . prod @l (id @l) pure') xs
+                          => (l (q (f a) v) (f a), l (q (f a) v) (f a))
+law_Applicative_rightUnit =
+  ( exl @l
+  , fmap (exl @k) . liftA2uu @f (id @k) . prod @l (id @l) pure'
   )
   \\ proveCartesian @l @(f a) @(f u)
   \\ proveCartesian @l @(f a) @v
@@ -302,11 +305,14 @@ class (Functor f, Cod f ~ Dom f) => Monad f where
 -- here as well? I think this requires a closed category which we
 -- don't have.
 
-(=<<) :: forall f a b k. Monad f => k ~ Dom f => Cartesian k => Ok k a => Ok k b
+(=<<) :: forall f a b k.
+         Monad f => k ~ Dom f => Cartesian k => HaskSubCat k
+      => Ok k a => Ok k b
       => k a (f b) -> f a -> f b
 (=<<) f = eval (bind f)
           \\ proveFunctor @f @a \\ proveFunctor @f @b
-(>>=) :: forall f a b k. Monad f => k ~ Dom f => Cartesian k => Ok k a => Ok k b
+(>>=) :: forall f a b k. Monad f => k ~ Dom f => Cartesian k => HaskSubCat k
+      => Ok k a => Ok k b
       => f a -> k a (f b) -> f b
 x >>= f = f =<< x
 
@@ -691,10 +697,13 @@ instance (Monad f, Monad g, Dom f ~ Dom g, Cod f ~ Cod g
           mkProd p q = \x -> F.Pair (p x) (q x)
 
 instance Semicomonad Proxy where
-  g =<= f = \_ -> g Proxy
+  duplicate = \_ -> Proxy
 
 instance Semicomonad Identity where
-  g =<= f = \xs -> g (Identity (f xs))
+  duplicate = Identity
+
+instance Semicomonad (Either a) where
+  duplicate = fmap Right
 
 instance Semicomonad ((,) a) where
   g =<= f = \(a, x) -> g (a, f (a, x))

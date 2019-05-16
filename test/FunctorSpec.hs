@@ -75,13 +75,13 @@ prop_Proxy_Functor_compose :: Fun B C -> Fun A B -> Proxy A -> Property
 prop_Proxy_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Proxy_Apply_assoc :: ((Proxy A, Proxy B), Proxy C) -> Property
-prop_Proxy_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Proxy_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Proxy_Applicative_leftUnit :: ((), Proxy A) -> Property
-prop_Proxy_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Proxy_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Proxy_Applicative_rightUnit :: (Proxy A, ()) -> Property
-prop_Proxy_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Proxy_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
 prop_Proxy_Semicomonad_assoc :: Fun (Proxy C) A
                              -> Fun (Proxy B) C
@@ -106,13 +106,13 @@ prop_Identity_Functor_compose :: Fun B C -> Fun A B -> Identity A -> Property
 prop_Identity_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Identity_Apply_assoc :: ((Identity A, Identity B), Identity C) -> Property
-prop_Identity_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Identity_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Identity_Applicative_leftUnit :: ((), Identity A) -> Property
-prop_Identity_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Identity_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Identity_Applicative_rightUnit :: (Identity A, ()) -> Property
-prop_Identity_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Identity_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
 prop_Identity_Semicomonad_assoc :: Fun (Identity C) A
                                 -> Fun (Identity B) C
@@ -143,13 +143,13 @@ prop_Tuple_Functor_compose :: Fun B C -> Fun A B -> (B, A) -> Property
 prop_Tuple_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Tuple_Apply_assoc :: (((B, A), (B, B)), (B, C)) -> Property
-prop_Tuple_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Tuple_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Tuple_Applicative_leftUnit :: ((), (B, A)) -> Property
-prop_Tuple_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Tuple_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Tuple_Applicative_rightUnit :: ((B, A), ()) -> Property
-prop_Tuple_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Tuple_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
 prop_Tuple_Semicomonad_assoc :: Fun (B, C) A
                              -> Fun (B, B) C
@@ -180,13 +180,27 @@ prop_Either_Functor_compose :: Fun B C -> Fun A B -> Either B A -> Property
 prop_Either_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Either_Apply_assoc :: ((Either B A, Either B B), Either B C) -> Property
-prop_Either_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Either_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Either_Applicative_leftUnit :: ((), Either B A) -> Property
-prop_Either_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Either_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Either_Applicative_rightUnit :: (Either B A, ()) -> Property
-prop_Either_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Either_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
+
+prop_Either_Semicomonad_assoc :: Fun (Either B C) A
+                              -> Fun (Either B B) C
+                              -> Fun (Either B A) B
+                              -> Either B A
+                              -> Property
+prop_Either_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_Either_Semicomonad_extend :: Fun (Either B A) B -> Either B A -> Property
+prop_Either_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_Either_Semicomonad_duplicate :: Either B A -> Property
+prop_Either_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
 
 
 
@@ -197,13 +211,13 @@ prop_List_Functor_compose :: Fun B C -> Fun A B -> [A] -> Property
 prop_List_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_List_Apply_assoc :: (([A], [B]), [C]) -> Property
-prop_List_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_List_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_List_Applicative_leftUnit :: ((), [A]) -> Property
-prop_List_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_List_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_List_Applicative_rightUnit :: ([A], ()) -> Property
-prop_List_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_List_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
 prop_List_Semicomonad_assoc :: Fun ([C]) A
                             -> Fun ([B]) C
@@ -260,15 +274,15 @@ prop_Function_Functor_compose (Fn g) (Fn f) (Fn x) =
   (ffcmp $ law_Functor_compose g f) x
 
 prop_Function_Apply_assoc :: ((Fun B A, Fun B B), Fun B C) -> B -> Property
-prop_Function_Apply_assoc xs = fcmp $ law_Apply_assoc xs'
+prop_Function_Apply_assoc xs = ffcmp law_Apply_assoc xs'
   where xs' = let ((Fn f, Fn g), Fn h) = xs in ((f, g), h)
 
 prop_Function_Applicative_leftUnit :: ((), Fun B A) -> B -> Property
-prop_Function_Applicative_leftUnit xs = fcmp $ law_Applicative_leftUnit xs'
+prop_Function_Applicative_leftUnit xs = ffcmp law_Applicative_leftUnit xs'
   where xs' = let ((), Fn f) = xs in ((), f)
 
 prop_Function_Applicative_rightUnit :: (Fun B A, ()) -> B -> Property
-prop_Function_Applicative_rightUnit xs = fcmp $ law_Applicative_rightUnit xs'
+prop_Function_Applicative_rightUnit xs = ffcmp law_Applicative_rightUnit xs'
   where xs' = let (Fn f, ()) = xs in (f, ())
 
 
@@ -282,17 +296,17 @@ prop_Product_Functor_compose :: Fun B C -> Fun A B -> FProd A -> Property
 prop_Product_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Product_Apply_assoc :: ((FProd A, FProd B), FProd C) -> Property
-prop_Product_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Product_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Product_Applicative_leftUnit :: ((), FProd A) -> Property
-prop_Product_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Product_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Product_Applicative_rightUnit :: (FProd A, ()) -> Property
-prop_Product_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Product_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
 
 
 
-type FSum a = F.Sum ((,) B) NE.NonEmpty a
+type FSum a = F.Sum ((,) B) Identity a
 
 prop_Sum_Functor_id :: FSum A -> Property
 prop_Sum_Functor_id = fcmp $ law_Functor_id
@@ -331,10 +345,10 @@ prop_Compose_Functor_compose :: Fun B C -> Fun A B -> FComp A -> Property
 prop_Compose_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 prop_Compose_Apply_assoc :: ((FComp A, FComp B), FComp C) -> Property
-prop_Compose_Apply_assoc xs = cmp $ law_Apply_assoc xs
+prop_Compose_Apply_assoc = fcmp $ law_Apply_assoc
 
 prop_Compose_Applicative_leftUnit :: ((), FComp A) -> Property
-prop_Compose_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
+prop_Compose_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
 
 prop_Compose_Applicative_rightUnit :: (FComp A, ()) -> Property
-prop_Compose_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+prop_Compose_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit

@@ -7,9 +7,12 @@ module Control.Constrained.Category
   , Semigroupoid(..)
   , law_Semigroupoid_assoc
   , Category(..)
-  , law_Category_evalId
   , law_Category_leftId
   , law_Category_rightId
+  , SubCatOf(..)
+  , law_SubCatOf_embedId
+  , HaskSubCat
+  , eval
     -- * Cartesian categories
   , Cartesian(..)
   , const
@@ -66,26 +69,37 @@ type CatKind = MorKind
 
 
 
+-- | A Semigroupoid is a Category without identity morphisms
 class Semigroupoid (k :: CatKind) where
   -- | Objects in the category are defined by a constraint
   type Ok k :: ObjKind
   (.) :: Ok k a => Ok k b => Ok k c => k b c -> k a b -> k a c
-  eval :: Ok k a => Ok k b => k a b -> a -> b
 
 -- | A Category is defined by its morphisms
 -- TODO: Not all categories are subcategories of Hask -- can't have 'eval'!
 class Semigroupoid k => Category (k :: CatKind) where
   id :: Ok k a => k a a
 
+-- | A subcategory
+-- A subcategories is a functors, but there is no data type associated with it.
+class (Category k, Category l) => SubCatOf k l where
+  proveSubCatOf :: Ok k a :- Ok l a
+  embed :: Ok k a => Ok k b => k a b -> l a b
+
+-- | A subcategory of Hask, where functions can be evaluated
+class SubCatOf k (->) => HaskSubCat k
+instance SubCatOf k (->) => HaskSubCat k
+
+eval :: forall k a b.
+        HaskSubCat k => Ok k a => Ok k b => k a b -> a -> b
+eval = embed
+       \\ proveSubCatOf @k @(->) @a
+
 
 
 law_Semigroupoid_assoc :: Category k => Ok k a => Ok k b => Ok k c => Ok k d
                        => k c d -> k b c -> k a b -> (k a d, k a d)
 law_Semigroupoid_assoc h g f = ((h . g) . f, h . (g . f))
-
-law_Category_evalId :: forall k a. Category k => Ok k a
-                    => a -> (a, a)
-law_Category_evalId x = (x, eval @k id x)
 
 law_Category_leftId :: Category k => Ok k a => Ok k b
                     => k a b -> (k a b, k a b)
@@ -94,6 +108,13 @@ law_Category_leftId f = (id . f, f)
 law_Category_rightId :: Category k => Ok k a => Ok k b
                      => k a b -> (k a b, k a b)
 law_Category_rightId f = (f . id, f)
+
+law_SubCatOf_embedId :: forall k l a. SubCatOf k l => Ok k a
+                       => (l a a, l a a)
+law_SubCatOf_embedId = (id @l, embed (id @k))
+                       \\ proveSubCatOf @k @l @a
+
+-- TODO: also prove functor composition...
 
 
 
@@ -161,54 +182,56 @@ class (Category k, Ok k (Unit k)) => Cartesian k where
 const :: forall k a b. Cartesian k => Ok k a => Ok k b => a -> k b a
 const x = unitArrow x . it
 
-runUnitArrow :: forall k a u. Cartesian k => u ~ Unit k => Ok k a => k u a -> a
+runUnitArrow :: forall k a u.
+                Cartesian k => HaskSubCat k => u ~ Unit k => Ok k a
+             => k u a -> a
 runUnitArrow f = eval f (unit @k)
 
 
 
-law_Cartesian_leftUnit1 :: forall k a p u.
-                           Cartesian k => p ~ Product k => u ~ Unit k
-                        => Ok k a
-                        => a -> (a, a)
-law_Cartesian_leftUnit1 x = (x, eval (exr @k . lunit @k) x)
-                            \\ proveCartesian @k @u @a
+law_Cartesian_leftUnit1 :: forall k a u.
+                           Cartesian k => u ~ Unit k => Ok k a
+                        => (k a a, k a a)
+law_Cartesian_leftUnit1 = (id, exr @k . lunit @k)
+                          \\ proveCartesian @k @u @a
 
 law_Cartesian_leftUnit2 :: forall k a p u.
-                           Cartesian k => p ~ Product k => u ~ Unit k
-                        => Ok k a
-                        => p u a -> (p u a, p u a)
-law_Cartesian_leftUnit2 p = (p, eval (lunit @k . exr @k) p)
-                            \\ proveCartesian @k @u @a
+                           Cartesian k => p ~ Product k => u ~ Unit k => Ok k a
+                        => (k (p u a) (p u a), k (p u a) (p u a))
+law_Cartesian_leftUnit2 = (id, lunit @k . exr @k)
+                          \\ proveCartesian @k @u @a
 
-law_Cartesian_rightUnit1 :: forall k a p u.
-                            Cartesian k => p ~ Product k => u ~ Unit k
-                         => Ok k a
-                         => a -> (a, a)
-law_Cartesian_rightUnit1 x = (x, eval (exl @k . runit @k) x)
-                             \\ proveCartesian @k @a @u
+law_Cartesian_rightUnit1 :: forall k a u.
+                            Cartesian k => u ~ Unit k => Ok k a
+                         => (k a a, k a a)
+law_Cartesian_rightUnit1 = (id, exl @k . runit @k)
+                           \\ proveCartesian @k @a @u
 
 law_Cartesian_rightUnit2 :: forall k a p u.
-                            Cartesian k => p ~ Product k => u ~ Unit k
-                         => Ok k a
-                         => p a u -> (p a u, p a u)
-law_Cartesian_rightUnit2 p = (p, eval (runit @k . exl @k) p)
-                             \\ proveCartesian @k @a @u
+                            Cartesian k => p ~ Product k => u ~ Unit k => Ok k a
+                         => (k (p a u) (p a u), k (p a u) (p a u))
+law_Cartesian_rightUnit2 = (id, runit @k . exl @k)
+                           \\ proveCartesian @k @a @u
 
 law_Cartesian_assoc :: forall k a b c p.
-                       Cartesian k
-                    => p ~ Product k => Ok k a => Ok k b => Ok k c
-                    => p (p a b) c -> (p (p a b) c, p (p a b) c)
-law_Cartesian_assoc p = (p, eval (reassoc @k . assoc @k) p)
-                        \\ proveCartesian @k @(p a b) @c
-                        \\ proveCartesian @k @a @(p b c)
-                        \\ proveCartesian @k @a @b
-                        \\ proveCartesian @k @b @c
+                       Cartesian k => p ~ Product k
+                    => Ok k a => Ok k b => Ok k c
+                    => ( k (p (p a b) c) (p (p a b) c)
+                       , k (p (p a b) c) (p (p a b) c)
+                       )
+law_Cartesian_assoc = (id, reassoc @k . assoc @k)
+                      \\ proveCartesian @k @(p a b) @c
+                      \\ proveCartesian @k @a @(p b c)
+                      \\ proveCartesian @k @a @b
+                      \\ proveCartesian @k @b @c
 
 law_Cartesian_reassoc :: forall k a b c p.
-                         Cartesian k
-                      => p ~ Product k => Ok k a => Ok k b => Ok k c
-                      => p a (p b c) -> (p a (p b c), p a (p b c))
-law_Cartesian_reassoc p = (p, eval (assoc @k . reassoc @k) p)
+                         Cartesian k => p ~ Product k
+                      => Ok k a => Ok k b => Ok k c
+                      => ( k (p a (p b c)) (p a (p b c))
+                         , k (p a (p b c)) (p a (p b c))
+                         )
+law_Cartesian_reassoc = (id,  assoc @k . reassoc @k)
                         \\ proveCartesian @k @(p a b) @c
                         \\ proveCartesian @k @a @(p b c)
                         \\ proveCartesian @k @a @b
@@ -216,10 +239,10 @@ law_Cartesian_reassoc p = (p, eval (assoc @k . reassoc @k) p)
 
 law_Cartesian_swap :: forall k a b p.
                       Cartesian k => p ~ Product k => Ok k a => Ok k b
-                   => p a b -> (p a b, p a b)
-law_Cartesian_swap p = (p, eval (swap @k . swap @k) p)
-                       \\ proveCartesian @k @b @a
-                       \\ proveCartesian @k @a @b
+                   => (k (p a b) (p a b), k (p a b) (p a b))
+law_Cartesian_swap = (id,  swap @k . swap @k)
+                     \\ proveCartesian @k @b @a
+                     \\ proveCartesian @k @a @b
 
 law_Cartesian_leftFork :: forall k a b c p.
                           Cartesian k => p ~ Product k
@@ -303,57 +326,61 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
 law_Cocartesian_leftZero1 :: forall k a s z.
                              Cocartesian k => s ~ Coproduct k => z ~ Zero k
                           => Ok k a
-                          => a -> (a, a)
-law_Cocartesian_leftZero1 x = (x, eval (lzero @k . inr @k @z @a) x)
-                              \\ proveCocartesian @k @z @a
+                          => (k a a, k a a)
+law_Cocartesian_leftZero1 = (id, lzero @k . inr @k @z @a)
+                            \\ proveCocartesian @k @z @a
 
 law_Cocartesian_leftZero2 :: forall k a s z.
                              Cocartesian k => s ~ Coproduct k => z ~ Zero k
                           => Ok k a
-                          => s z a -> (s z a, s z a)
-law_Cocartesian_leftZero2 s = (s, eval (inr @k . lzero @k) s)
-                              \\ proveCocartesian @k @z @a
+                          => (k (s z a) (s z a), k (s z a) (s z a))
+law_Cocartesian_leftZero2 = (id, inr @k . lzero @k)
+                            \\ proveCocartesian @k @z @a
 
 law_Cocartesian_rightZero1 :: forall k a s z.
                               Cocartesian k => s ~ Coproduct k => z ~ Zero k
                            => Ok k a
-                           => a -> (a, a)
-law_Cocartesian_rightZero1 x = (x, eval (rzero @k . inl @k @a @z) x)
-                               \\ proveCocartesian @k @a @z
+                           => (k a a, k a a)
+law_Cocartesian_rightZero1 = (id, rzero @k . inl @k @a @z)
+                             \\ proveCocartesian @k @a @z
 
 law_Cocartesian_rightZero2 :: forall k a s z.
                               Cocartesian k => s ~ Coproduct k => z ~ Zero k
                            => Ok k a
-                           => s a z -> (s a z, s a z)
-law_Cocartesian_rightZero2 s = (s, eval (inl @k . rzero @k) s)
-                               \\ proveCocartesian @k @a @z
+                           => (k (s a z) (s a z), k (s a z) (s a z))
+law_Cocartesian_rightZero2 = (id, inl @k . rzero @k)
+                             \\ proveCocartesian @k @a @z
 
 law_Cocartesian_assoc :: forall k a b c s.
                          Cocartesian k
                       => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-                      => s (s a b) c -> (s (s a b) c, s (s a b) c)
-law_Cocartesian_assoc s = (s, eval (coreassoc @k . coassoc @k) s)
+                      => ( k (s (s a b) c) (s (s a b) c)
+                         , k (s (s a b) c) (s (s a b) c)
+                         )
+law_Cocartesian_assoc = (id, coreassoc @k . coassoc @k)
+                        \\ proveCocartesian @k @(s a b) @c
+                        \\ proveCocartesian @k @a @(s b c)
+                        \\ proveCocartesian @k @a @b
+                        \\ proveCocartesian @k @b @c
+
+law_Cocartesian_reassoc :: forall k a b c s.
+                           Cocartesian k
+                        => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
+                        => ( k (s a (s b c)) (s a (s b c))
+                           ,  k (s a (s b c)) (s a (s b c))
+                           )
+law_Cocartesian_reassoc = (id, coassoc @k . coreassoc @k)
                           \\ proveCocartesian @k @(s a b) @c
                           \\ proveCocartesian @k @a @(s b c)
                           \\ proveCocartesian @k @a @b
                           \\ proveCocartesian @k @b @c
 
-law_Cocartesian_reassoc :: forall k a b c s.
-                           Cocartesian k
-                        => s ~ Coproduct k => Ok k a => Ok k b => Ok k c
-                        => s a (s b c) -> (s a (s b c), s a (s b c))
-law_Cocartesian_reassoc s = (s, eval (coassoc @k . coreassoc @k) s)
-                            \\ proveCocartesian @k @(s a b) @c
-                            \\ proveCocartesian @k @a @(s b c)
-                            \\ proveCocartesian @k @a @b
-                            \\ proveCocartesian @k @b @c
-
 law_Cocartesian_swap :: forall k a b s.
                         Cocartesian k => s ~ Coproduct k => Ok k a => Ok k b
-                     => s a b -> (s a b, s a b)
-law_Cocartesian_swap s = (s, eval (coswap @k . coswap @k) s)
-                         \\ proveCocartesian @k @b @a
-                         \\ proveCocartesian @k @a @b
+                     => (k (s a b) (s a b), k (s a b) (s a b))
+law_Cocartesian_swap = (id, coswap @k . coswap @k)
+                       \\ proveCocartesian @k @b @a
+                       \\ proveCocartesian @k @a @b
 
 law_Cocartesian_leftJoin :: forall k a b c s.
                             Cocartesian k => s ~ Coproduct k
@@ -426,10 +453,13 @@ instance True1 a
 instance Semigroupoid (->) where
   type Ok (->) = True1
   (.) = (P..)
-  eval = P.id
 
 instance Category (->) where
   id = P.id
+
+instance SubCatOf (->) (->) where
+  proveSubCatOf = Sub Dict
+  embed = P.id
 
 instance Cartesian (->) where
   proveCartesian = Sub Dict

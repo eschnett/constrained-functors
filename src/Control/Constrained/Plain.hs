@@ -32,10 +32,13 @@ newtype (-#>) a b = PFun { runPFun :: a -> b }
 instance Semigroupoid (-#>) where
   type Ok (-#>) = PCon
   PFun g . PFun f = PFun (g . f)
-  eval (PFun f) = f
 
 instance Category (-#>) where
   id = PFun id
+
+instance SubCatOf (-#>) (->) where
+  proveSubCatOf = Sub Dict
+  embed (PFun f) = f
 
 instance Cartesian (-#>) where
   proveCartesian = Sub Dict
@@ -265,3 +268,5 @@ instance Foldable U.Vector where
 
 instance Apply U.Vector where
   liftA2uu (PFun f) = \(xs, ys) -> U.zipWith (\x y -> f (x, y)) xs ys
+
+--  Semicomonad

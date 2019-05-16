@@ -3,7 +3,10 @@
 
 module CategorySpec where
 
+import Prelude as P
+
 import Control.Constrained.Category
+import Data.Void
 import Test.QuickCheck
 import Test.QuickCheck.Poly
 
@@ -24,37 +27,37 @@ prop_Hask_Semigroupoid_assoc :: Fun C A -> Fun B C -> Fun A B -> A -> Property
 prop_Hask_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
   fcmp $ law_Semigroupoid_assoc @(->) h g f
 
-prop_Hask_Category_evalId :: A -> Property
-prop_Hask_Category_evalId x = cmp $ law_Category_evalId @(->) x
-
 prop_Hask_Category_leftId :: Fun A B -> A -> Property
 prop_Hask_Category_leftId (Fn f) = fcmp $ law_Category_leftId @(->) f
 
 prop_Hask_Category_rightId :: Fun A B -> A -> Property
 prop_Hask_Category_rightId (Fn f) = fcmp $ law_Category_rightId @(->) f
 
+prop_Hask_SubCatOf_evalId :: A -> Property
+prop_Hask_SubCatOf_evalId = fcmp $ law_SubCatOf_embedId @(->)
+
 
 
 prop_Hask_Cartesian_leftUnit1 :: A -> Property
-prop_Hask_Cartesian_leftUnit1 x = cmp $ law_Cartesian_leftUnit1 @(->) x
+prop_Hask_Cartesian_leftUnit1 = fcmp $ law_Cartesian_leftUnit1 @(->)
 
-prop_Hask_Cartesian_leftUnit2 :: A -> Property
-prop_Hask_Cartesian_leftUnit2 x = cmp $ law_Cartesian_leftUnit2 @(->) ((), x)
+prop_Hask_Cartesian_leftUnit2 :: ((), A) -> Property
+prop_Hask_Cartesian_leftUnit2 = fcmp $ law_Cartesian_leftUnit2 @(->)
 
 prop_Hask_Cartesian_rightUnit1 :: A -> Property
-prop_Hask_Cartesian_rightUnit1 x = cmp $ law_Cartesian_rightUnit1 @(->) x
+prop_Hask_Cartesian_rightUnit1 = fcmp $ law_Cartesian_rightUnit1 @(->)
 
-prop_Hask_Cartesian_rightUnit2 :: A -> Property
-prop_Hask_Cartesian_rightUnit2 x = cmp $ law_Cartesian_rightUnit2 @(->) (x, ())
+prop_Hask_Cartesian_rightUnit2 :: (A, ()) -> Property
+prop_Hask_Cartesian_rightUnit2 = fcmp $ law_Cartesian_rightUnit2 @(->)
 
 prop_Hask_Cartesian_assoc :: ((A, B), C) -> Property
-prop_Hask_Cartesian_assoc p = cmp $ law_Cartesian_assoc @(->) p
+prop_Hask_Cartesian_assoc = fcmp $ law_Cartesian_assoc @(->)
 
 prop_Hask_Cartesian_reassoc :: (A, (B, C)) -> Property
-prop_Hask_Cartesian_reassoc p = cmp $ law_Cartesian_reassoc @(->) p
+prop_Hask_Cartesian_reassoc = fcmp $ law_Cartesian_reassoc @(->)
 
 prop_Hask_Cartesian_swap :: (A, B) -> Property
-prop_Hask_Cartesian_swap p = cmp $ law_Cartesian_swap @(->) p
+prop_Hask_Cartesian_swap = fcmp $ law_Cartesian_swap @(->)
 
 prop_Hask_Cartesian_leftFork :: Fun A B -> Fun A C -> A -> Property
 prop_Hask_Cartesian_leftFork (Fn f) (Fn g) =
@@ -70,27 +73,27 @@ prop_Hask_Cartesian_dup = fcmp $ law_Cartesian_dup @(->)
 
 
 prop_Hask_Cocartesian_leftZero1 :: A -> Property
-prop_Hask_Cocartesian_leftZero1 x = cmp $ law_Cocartesian_leftZero1 @(->) x
+prop_Hask_Cocartesian_leftZero1 = fcmp $ law_Cocartesian_leftZero1 @(->)
 
 prop_Hask_Cocartesian_leftZero2 :: A -> Property
 prop_Hask_Cocartesian_leftZero2 x =
-  cmp $ law_Cocartesian_leftZero2 @(->) (Right x)
+  (fcmp $ law_Cocartesian_leftZero2 @(->)) (Right x)
 
 prop_Hask_Cocartesian_rightZero1 :: A -> Property
-prop_Hask_Cocartesian_rightZero1 x = cmp $ law_Cocartesian_rightZero1 @(->) x
+prop_Hask_Cocartesian_rightZero1 = fcmp $ law_Cocartesian_rightZero1 @(->)
 
 prop_Hask_Cocartesian_rightZero2 :: A -> Property
 prop_Hask_Cocartesian_rightZero2 x =
-  cmp $ law_Cocartesian_rightZero2 @(->) (Left x)
+  (fcmp $ law_Cocartesian_rightZero2 @(->)) (Left x)
 
 prop_Hask_Cocartesian_assoc :: Either (Either A B) C -> Property
-prop_Hask_Cocartesian_assoc s = cmp $ law_Cocartesian_assoc @(->) s
+prop_Hask_Cocartesian_assoc = fcmp $ law_Cocartesian_assoc @(->)
 
 prop_Hask_Cocartesian_reassoc :: Either A (Either B C) -> Property
-prop_Hask_Cocartesian_reassoc s = cmp $ law_Cocartesian_reassoc @(->) s
+prop_Hask_Cocartesian_reassoc = fcmp $ law_Cocartesian_reassoc @(->)
 
 prop_Hask_Cocartesian_swap :: Either A B -> Property
-prop_Hask_Cocartesian_swap s = cmp $ law_Cocartesian_swap @(->) s
+prop_Hask_Cocartesian_swap = fcmp $ law_Cocartesian_swap @(->)
 
 prop_Hask_Cocartesian_leftJoin :: Fun A C -> Fun B C -> A -> Property
 prop_Hask_Cocartesian_leftJoin (Fn f) (Fn g) =
