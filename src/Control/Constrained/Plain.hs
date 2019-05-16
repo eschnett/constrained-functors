@@ -29,11 +29,13 @@ newtype (-#>) a b = PFun { runPFun :: a -> b }
 
 
 
-instance Category (-#>) where
+instance Semigroupoid (-#>) where
   type Ok (-#>) = PCon
-  id = PFun id
   PFun g . PFun f = PFun (g . f)
   eval (PFun f) = f
+
+instance Category (-#>) where
+  id = PFun id
 
 instance Cartesian (-#>) where
   proveCartesian = Sub Dict

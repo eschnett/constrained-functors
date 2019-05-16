@@ -14,7 +14,15 @@ module Control.Constrained.Functor
   , Traversable(..)
   , Monad(..)
   , (=<<), (>>=)
+  , Kleisli(..)
+  , Semicomonad(..)
+  , law_Semicomonad_assoc
+  , law_Semicomonad_extend
+  , law_Semicomonad_duplicate
   , Comonad(..)
+  , law_Comonad_leftId
+  , law_Comonad_rightId
+  , Cokleisli(..)
   ) where
 
 import Prelude hiding ( id, (.), const, curry, uncurry
@@ -22,12 +30,15 @@ import Prelude hiding ( id, (.), const, curry, uncurry
                       , Traversable(..)
                       , (=<<))
 
+import Control.Applicative (ZipList(..))
 import Control.Constrained.Category hiding (fork, join)
 import Data.Constraint
 import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
 import qualified Data.Functor.Sum as F
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import Data.Proxy
 
 
@@ -262,6 +273,8 @@ class (Foldable f, Dom f ~ Cod f) => Traversable f where
 
 
 
+-- Semimonad?
+
 class (Functor f, Cod f ~ Dom f) => Monad f where
   {-# MINIMAL return, (join | (<=<)) #-}
   return :: k ~ Dom f => Ok k a => k a (f a)
@@ -297,27 +310,89 @@ class (Functor f, Cod f ~ Dom f) => Monad f where
       => f a -> k a (f b) -> f b
 x >>= f = f =<< x
 
+newtype Kleisli f a b = Kleisli { runKleisli :: Dom f a (f b) }
+
+-- TODO: 'Kleisli' is a 'Category'
+
 
 
 --------------------------------------------------------------------------------
 
 
 
-class (Functor f, Cod f ~ Dom f) => Comonad f where
-  {-# MINIMAL extract, (duplicate | (=<=)) #-}
-  extract :: k ~ Dom f => Ok k a => k (f a) a
+class (Functor f, Cod f ~ Dom f) => Semicomonad f where
+  {-# MINIMAL (duplicate | (=<=) | extend) #-}
   duplicate :: forall a k. k ~ Dom f => Ok k a => k (f a) (f (f a))
-  duplicate = id =<= id
-              \\ proveFunctor @f @(f a) \\ proveFunctor @f @a
-
+  -- duplicate = id =<= id
+  --             \\ proveFunctor @f @(f a) \\ proveFunctor @f @a
+  duplicate = extend id
+              \\ proveFunctor @f @a
   (=<=) :: forall a b c k. k ~ Dom f => Ok k a => Ok k b => Ok k c
         => k (f b) c -> k (f a) b -> k (f a) c
   g =<= f = g . fmap f . duplicate
-    \\ proveFunctor @f @(f a) \\ proveFunctor @f @a \\ proveFunctor @f @b
-  extend :: forall a b k. k ~ Dom f => Cartesian k => Ok k a => Ok k b
+            \\ proveFunctor @f @(f a)
+            \\ proveFunctor @f @b
+            \\ proveFunctor @f @a
+  extend :: forall a b k. k ~ Dom f => Ok k a => Ok k b
          => k (f a) b -> k (f a) (f b)
   extend f = id =<= f
              \\ proveFunctor @f @b
+
+class Semicomonad f => Comonad f where
+  {-# MINIMAL extract #-}
+  extract :: k ~ Dom f => Ok k a => k (f a) a
+
+newtype Cokleisli f a b = Cokleisli { runCokleisli :: Dom f (f a) b }
+
+-- TOOD: make this work -- find out how to handle 'eval'
+-- instance Comonad f => Category (Cokleisli f) where
+--   type Ok (Cokleisli f) = Ok (Dom f)
+--   id = Cokleisli extract
+--   Cokleisli g . Cokleisli f = Cokleisli (g =<= f)
+--   eval :: Ok (Dom f) a => Ok (Dom f) b => Cokleisli f a b -> a -> b
+--   eval (Cokleisli f) = Cokleisli @(->) (eval f)
+
+
+
+-- prop> (h =<= (g =<= f)) = ((h =<= g) =<= f)
+law_Semicomonad_assoc :: forall f a b c d k.
+                         Semicomonad f
+                      => k ~ Dom f
+                      => Ok k a => Ok k b => Ok k c => Ok k d
+                      => k (f c) d -> k (f b) c -> k (f a) b
+                      -> (k (f a) d, k (f a) d)
+law_Semicomonad_assoc h g f = (h =<= (g =<= f), (h =<= g) =<= f)
+
+law_Semicomonad_extend :: forall f a b k.
+                          Semicomonad f
+                       => k ~ Dom f
+                       => Ok k a => Ok k b
+                       => k (f a) b -> (k (f a) (f b), k (f a) (f b))
+law_Semicomonad_extend f = (extend f, id =<= f)
+                           \\ proveFunctor @f @b
+law_Semicomonad_duplicate :: forall f a k.
+                             Semicomonad f
+                          => k ~ Dom f
+                          => Ok k a
+                          => (k (f a) (f (f a)), k (f a) (f (f a)))
+law_Semicomonad_duplicate = (duplicate, extend id)
+                            \\ proveFunctor @f @a
+
+-- prop> extract =<= f = f
+law_Comonad_leftId :: forall f a b k.
+                      Comonad f
+                   => k ~ Dom f
+                   => Ok k a => Ok k b
+                   => k (f a) b -> (k (f a) b, k (f a) b)
+law_Comonad_leftId f = (f, extract =<= f)
+
+-- prop> f =<= extract = f
+law_Comonad_rightId :: forall f a b k.
+                       Comonad f
+                    => k ~ Dom f
+                    => Ok k a => Ok k b
+                    => k (f a) b -> (k (f a) b, k (f a) b)
+law_Comonad_rightId f = (f , f =<= extract)
 
 
 
@@ -356,6 +431,18 @@ instance Functor [] where
   type Cod [] = (->)
   fmap f = \case [] -> []
                  x : xs -> f x : fmap f xs
+
+instance Functor ZipList where
+  proveFunctor = Sub Dict
+  type Dom ZipList = (->)
+  type Cod ZipList = (->)
+  fmap f = ZipList . fmap f . getZipList
+
+instance Functor NonEmpty where
+  proveFunctor = Sub Dict
+  type Dom NonEmpty = (->)
+  type Cod NonEmpty = (->)
+  fmap f = \(x :| xs) -> f x :| fmap f xs
 
 instance Functor ((->) a) where
   proveFunctor = Sub Dict
@@ -407,6 +494,12 @@ instance Foldable [] where
   foldMap f = \case [] -> mempty
                     x : xs -> f x <> foldMap f xs
 
+instance Foldable ZipList where
+  foldMap f = foldMap f . getZipList
+
+instance Foldable NonEmpty where
+  foldMap f = \(x :| xs) -> f x <> foldMap f xs
+
 instance ( Foldable f, Foldable g, Dom f ~ Dom g, Cod f ~ Cod g
          , Dom f ~ (->), Cod f ~ (->)) =>
          Foldable (F.Product f g) where
@@ -440,7 +533,16 @@ instance Apply (Either a) where
                      (Right x, Right y) -> Right (f (x, y))
 
 instance Apply [] where
-  liftA2uu f = \(xs, ys) -> [f (x, y) | x <- xs, y <- ys]
+  -- liftA2uu f = \(xs, ys) -> [f (x, y) | x <- xs, y <- ys]
+  liftA2uu f = \(xs, ys) -> let g x = let h y = f (x, y)
+                                      in map h ys
+                            in concatMap g xs
+
+instance Apply ZipList where
+  liftA2uu f = \(xs, ys) -> zipWith' (\x y -> f (x, y)) xs ys
+    where zipWith' g (ZipList xs) (ZipList ys) = ZipList (zipWith g xs ys)
+
+-- NonEmpty
 
 instance Apply ((->) a) where
   liftA2uu f = \(p, q) -> \x -> f (p x, q x)
@@ -475,6 +577,11 @@ instance Applicative (Either a) where
 
 instance Applicative [] where
   pure x = [x]
+
+instance Applicative ZipList where
+  pure x = ZipList (repeat x)
+
+-- NonEmpty
 
 instance Applicative ((->) a) where
   pure x = const x
@@ -515,6 +622,11 @@ instance Traversable [] where
   mapTraverse g f = \case [] -> pure (g [])
                           (ys:yss) -> liftA2 go (f ys) (mapTraverse id f yss)
                             where go zs zss = g (zs : zss)
+
+instance Traversable ZipList where
+  mapTraverse g f = mapTraverse (g . ZipList) f . getZipList
+
+-- NonEmpty
 
 instance ( Traversable f, Traversable g, Dom f ~ Dom g, Cod f ~ Cod g
          , Dom f ~ (->), Cod f ~ (->)) =>
@@ -559,6 +671,12 @@ instance Monad [] where
   return = \x -> [x]
   g <=< f = \x -> [z | y <- f x, z <- g y]
 
+-- instance Monad ZipList where
+--   return = ZipList . return
+--   g <=< f = ZipList . ((getZipList . g) <=< (getZipList . f))
+
+-- NonEmpty
+
 instance Monad ((->) a) where
   return = \x -> const x
   g <=< f = \a -> \x -> g (f a x) x
@@ -572,18 +690,46 @@ instance (Monad f, Monad g, Dom f ~ Dom g, Cod f ~ Cod g
           psnd (F.Pair _ xs') = xs'
           mkProd p q = \x -> F.Pair (p x) (q x)
 
+instance Semicomonad Proxy where
+  g =<= f = \_ -> g Proxy
+
+instance Semicomonad Identity where
+  g =<= f = \xs -> g (Identity (f xs))
+
+instance Semicomonad ((,) a) where
+  g =<= f = \(a, x) -> g (a, f (a, x))
+
+instance Semicomonad [] where
+  g =<= f = g . extend f
+  extend f = extendList
+    where extendList [] = []
+          extendList l@(x:xs) = f l : extendList xs
+
+instance Semicomonad NonEmpty where
+  g =<= f = g . extend f
+  extend f = NE.fromList . extendList . NE.toList
+    where extendList [] = []
+          extendList l@(x:xs) = (f . NE.fromList) l : extendList xs
+
+instance ( Semicomonad f, Semicomonad g, Dom f ~ Dom g, Cod f ~ Cod g
+         , Dom f ~ (->), Cod f ~ (->)) =>
+         Semicomonad (F.Sum f g) where
+  g =<= f = \case (F.InL xs) -> ((g . F.InL) =<= (f . F.InL)) xs
+                  (F.InR xs') -> ((g . F.InR) =<= (f . F.InR)) xs'
+
 instance Comonad Identity where
   extract = \(Identity x) -> x
-  g =<= f = \xs -> g (Identity (f xs))
 
 instance Comonad ((,) a) where
   extract = \(a, x) -> x
-  g =<= f = \(a, x) -> g (a, f (a, x))
+
+instance Comonad NonEmpty where
+  extract = \(x :| _) -> x
+
+-- '(->) a' ?
 
 instance ( Comonad f, Comonad g, Dom f ~ Dom g, Cod f ~ Cod g
          , Dom f ~ (->), Cod f ~ (->)) =>
          Comonad (F.Sum f g) where
   extract = \case (F.InL xs) -> extract xs
                   (F.InR xs') -> extract xs'
-  g =<= f = \case (F.InL xs) -> ((g . F.InL) =<= (f . F.InL)) xs
-                  (F.InR xs') -> ((g . F.InR) =<= (f . F.InR)) xs'

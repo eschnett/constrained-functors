@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module FunctorSpec where
 
@@ -7,9 +8,10 @@ import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
 import qualified Data.Functor.Sum as F
-import Data.Monoid
+import qualified Data.List.NonEmpty as NE
+-- import Data.Monoid
 import Data.Proxy
-import Data.Semigroup
+-- import Data.Semigroup
 import Test.QuickCheck
 import Test.QuickCheck.Poly
 
@@ -41,6 +43,12 @@ instance Arbitrary (Proxy a) where
   arbitrary = (\() -> Proxy) <$> arbitrary
 instance CoArbitrary (Proxy a)
 instance Function (Proxy a)
+
+instance Arbitrary a => Arbitrary (NE.NonEmpty a) where
+  arbitrary = NE.fromList . getNonEmpty <$> arbitrary
+  shrink = map (NE.fromList . getNonEmpty) . shrink . NonEmpty . NE.toList
+instance CoArbitrary a =>CoArbitrary (NE.NonEmpty a)
+instance Function a => Function (NE.NonEmpty a)
 
 
 
@@ -75,6 +83,20 @@ prop_Proxy_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
 prop_Proxy_Applicative_rightUnit :: (Proxy A, ()) -> Property
 prop_Proxy_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
 
+prop_Proxy_Semicomonad_assoc :: Fun (Proxy C) A
+                             -> Fun (Proxy B) C
+                             -> Fun (Proxy A) B
+                             -> Proxy A
+                             -> Property
+prop_Proxy_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_Proxy_Semicomonad_extend :: Fun (Proxy A) B -> Proxy A -> Property
+prop_Proxy_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_Proxy_Semicomonad_duplicate :: Proxy A -> Property
+prop_Proxy_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
 
 
 prop_Identity_Functor_id :: Identity A -> Property
@@ -92,6 +114,26 @@ prop_Identity_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
 prop_Identity_Applicative_rightUnit :: (Identity A, ()) -> Property
 prop_Identity_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
 
+prop_Identity_Semicomonad_assoc :: Fun (Identity C) A
+                                -> Fun (Identity B) C
+                                -> Fun (Identity A) B
+                                -> Identity A
+                                -> Property
+prop_Identity_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_Identity_Semicomonad_extend :: Fun (Identity A) B -> Identity A -> Property
+prop_Identity_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_Identity_Semicomonad_duplicate :: Identity A -> Property
+prop_Identity_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
+prop_Identity_Comonad_leftId :: Fun (Identity A) B -> Identity A -> Property
+prop_Identity_Comonad_leftId (Fn f) = fcmp $ law_Comonad_leftId f
+
+prop_Identity_Comonad_rightId :: Fun (Identity A) B -> Identity A -> Property
+prop_Identity_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
 
 
 prop_Tuple_Functor_id :: (B, A) -> Property
@@ -108,6 +150,26 @@ prop_Tuple_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
 
 prop_Tuple_Applicative_rightUnit :: ((B, A), ()) -> Property
 prop_Tuple_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+
+prop_Tuple_Semicomonad_assoc :: Fun (B, C) A
+                             -> Fun (B, B) C
+                             -> Fun (B, A) B
+                             -> (B, A)
+                             -> Property
+prop_Tuple_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_Tuple_Semicomonad_extend :: Fun (B, A) B -> (B, A) -> Property
+prop_Tuple_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_Tuple_Semicomonad_duplicate :: (B, A) -> Property
+prop_Tuple_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
+prop_Tuple_Comonad_leftId :: Fun (B, A) B -> (B, A) -> Property
+prop_Tuple_Comonad_leftId (Fn f) = fcmp $ law_Comonad_leftId f
+
+prop_Tuple_Comonad_rightId :: Fun (B, A) B -> (B, A) -> Property
+prop_Tuple_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
 
 
 
@@ -142,6 +204,51 @@ prop_List_Applicative_leftUnit xs = cmp $ law_Applicative_leftUnit xs
 
 prop_List_Applicative_rightUnit :: ([A], ()) -> Property
 prop_List_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
+
+prop_List_Semicomonad_assoc :: Fun ([C]) A
+                            -> Fun ([B]) C
+                            -> Fun ([A]) B
+                            -> [A]
+                            -> Property
+prop_List_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_List_Semicomonad_extend :: Fun ([A]) B -> [A] -> Property
+prop_List_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_List_Semicomonad_duplicate :: [A] -> Property
+prop_List_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
+
+
+prop_NonEmpty_Functor_id :: NE.NonEmpty A -> Property
+prop_NonEmpty_Functor_id = fcmp $ law_Functor_id
+
+prop_NonEmpty_Functor_compose :: Fun B C -> Fun A B -> NE.NonEmpty A -> Property
+prop_NonEmpty_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
+
+prop_NonEmpty_Semicomonad_assoc :: Fun (NE.NonEmpty C) A
+                                -> Fun (NE.NonEmpty B) C
+                                -> Fun (NE.NonEmpty A) B
+                                -> NE.NonEmpty A
+                                -> Property
+prop_NonEmpty_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_NonEmpty_Semicomonad_extend ::
+  Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
+prop_NonEmpty_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_NonEmpty_Semicomonad_duplicate :: NE.NonEmpty A -> Property
+prop_NonEmpty_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
+prop_NonEmpty_Comonad_leftId ::
+  Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
+prop_NonEmpty_Comonad_leftId (Fn f) = fcmp $ law_Comonad_leftId f
+
+prop_NonEmpty_Comonad_rightId ::
+  Fun (NE.NonEmpty A) B -> NE.NonEmpty A -> Property
+prop_NonEmpty_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
 
 
 
@@ -185,13 +292,33 @@ prop_Product_Applicative_rightUnit xs = cmp $ law_Applicative_rightUnit xs
 
 
 
-type FSum a = F.Sum ((,) B) (Either C) a
+type FSum a = F.Sum ((,) B) NE.NonEmpty a
 
 prop_Sum_Functor_id :: FSum A -> Property
 prop_Sum_Functor_id = fcmp $ law_Functor_id
 
 prop_Sum_Functor_compose :: Fun B C -> Fun A B -> FSum A -> Property
 prop_Sum_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
+
+prop_Sum_Semicomonad_assoc :: Fun (FSum C) A
+                           -> Fun (FSum B) C
+                           -> Fun (FSum A) B
+                           -> FSum A
+                           -> Property
+prop_Sum_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_Sum_Semicomonad_extend :: Fun (FSum A) B -> FSum A -> Property
+prop_Sum_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+
+prop_Sum_Semicomonad_duplicate :: FSum A -> Property
+prop_Sum_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
+
+prop_Sum_Comonad_leftId :: Fun (FSum A) B -> FSum A -> Property
+prop_Sum_Comonad_leftId (Fn f) = fcmp $ law_Comonad_leftId f
+
+prop_Sum_Comonad_rightId :: Fun (FSum A) B -> FSum A -> Property
+prop_Sum_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
 
 
 

@@ -43,6 +43,10 @@ fcmp (f, g) x = eval f x === eval g x
 
 
 
+prop_PFun_Semigroupoid_assoc :: Fun C A -> Fun B C -> Fun A B -> A -> Property
+prop_PFun_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semigroupoid_assoc @(-#>) (PFun h) (PFun g) (PFun f)
+
 prop_PFun_Category_evalId :: A -> Property
 prop_PFun_Category_evalId x = cmp $ law_Category_evalId @(-#>) x
 
@@ -51,10 +55,6 @@ prop_PFun_Category_leftId (Fn f) = fcmp $ law_Category_leftId @(-#>) (PFun f)
 
 prop_PFun_Category_rightId :: Fun A B -> A -> Property
 prop_PFun_Category_rightId (Fn f) = fcmp $ law_Category_rightId @(-#>) (PFun f)
-
-prop_PFun_Category_assoc :: Fun C A -> Fun B C -> Fun A B -> A -> Property
-prop_PFun_Category_assoc (Fn h) (Fn g) (Fn f) =
-  fcmp $ law_Category_assoc @(-#>) (PFun h) (PFun g) (PFun f)
 
 
 

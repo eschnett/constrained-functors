@@ -4,11 +4,12 @@
 module Control.Constrained.Category
   ( -- * Categories
     ObjKind, MorKind, CatKind
+  , Semigroupoid(..)
+  , law_Semigroupoid_assoc
   , Category(..)
   , law_Category_evalId
   , law_Category_leftId
   , law_Category_rightId
-  , law_Category_assoc
     -- * Cartesian categories
   , Cartesian(..)
   , const
@@ -65,15 +66,22 @@ type CatKind = MorKind
 
 
 
--- | A Category is defined by its morphisms
-class Category (k :: CatKind) where
+class Semigroupoid (k :: CatKind) where
   -- | Objects in the category are defined by a constraint
   type Ok k :: ObjKind
-  id :: Ok k a => k a a
   (.) :: Ok k a => Ok k b => Ok k c => k b c -> k a b -> k a c
   eval :: Ok k a => Ok k b => k a b -> a -> b
 
+-- | A Category is defined by its morphisms
+-- TODO: Not all categories are subcategories of Hask -- can't have 'eval'!
+class Semigroupoid k => Category (k :: CatKind) where
+  id :: Ok k a => k a a
 
+
+
+law_Semigroupoid_assoc :: Category k => Ok k a => Ok k b => Ok k c => Ok k d
+                       => k c d -> k b c -> k a b -> (k a d, k a d)
+law_Semigroupoid_assoc h g f = ((h . g) . f, h . (g . f))
 
 law_Category_evalId :: forall k a. Category k => Ok k a
                     => a -> (a, a)
@@ -86,10 +94,6 @@ law_Category_leftId f = (id . f, f)
 law_Category_rightId :: Category k => Ok k a => Ok k b
                      => k a b -> (k a b, k a b)
 law_Category_rightId f = (f . id, f)
-
-law_Category_assoc :: Category k => Ok k a => Ok k b => Ok k c => Ok k d
-                   => k c d -> k b c -> k a b -> (k a d, k a d)
-law_Category_assoc h g f = ((h . g) . f, h . (g . f))
 
 
 
@@ -419,11 +423,13 @@ class True1 a
 instance True1 a
 
 -- | Hask
-instance Category (->) where
+instance Semigroupoid (->) where
   type Ok (->) = True1
-  id = P.id
   (.) = (P..)
   eval = P.id
+
+instance Category (->) where
+  id = P.id
 
 instance Cartesian (->) where
   proveCartesian = Sub Dict

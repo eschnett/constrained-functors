@@ -16,3 +16,10 @@ and his Haskell package [`concat`](https://github.com/conal/concat/).
   Pipelines](https://dev.azure.com/schnetter/constrained-categories/_build):
   Build Status [![Build
   Status](https://dev.azure.com/schnetter/constrained-categories/_apis/build/status/eschnett.constrained-categories?branchName=master)](https://dev.azure.com/schnetter/constrained-categories/_build/latest?definitionId=1&branchName=master)
+
+
+
+## Related Work
+
+*[`subhask`](http://hackage.haskell.org/package/subhask)
+*[`constrained-categories`](https://github.com/leftaroundabout/constrained-categories)
