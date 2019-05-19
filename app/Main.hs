@@ -1,5 +1,9 @@
-import Prelude hiding (id, (.), const, Foldable(..), Functor(..))
+import Prelude()
+import Control.Constrained.Prelude
+
+import Control.Constrained.Cartesian
 import Control.Constrained.Category
+import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Plain
 import qualified Data.Monoid as M

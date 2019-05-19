@@ -80,6 +80,7 @@ default-extensions:
 
 library:
   dependencies:
+    - QuickCheck
     - base
     - binary
     - constraints
@@ -120,13 +121,12 @@ tests:
     dependencies:
       - QuickCheck
       - base
-      - binary
       - constrained-categories
+      - quickcheck-instances
       - tasty
       - tasty-discover
       - tasty-hspec
       - tasty-quickcheck
-      - vector-th-unbox
     ghc-options:
       - -rtsopts
       - -threaded

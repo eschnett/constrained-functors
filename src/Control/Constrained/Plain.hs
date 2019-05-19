@@ -6,11 +6,16 @@ module Control.Constrained.Plain
   , type (-#>)(..)
   ) where
 
-import qualified Prelude as P
+import Prelude()
 import Control.Constrained.Prelude
 
+import Control.Constrained.Applicative
+import Control.Constrained.Cartesian
 import Control.Constrained.Category
+import Control.Constrained.Closed
+import Control.Constrained.Foldable
 import Control.Constrained.Functor
+import Control.Constrained.Traversable
 import Data.Binary
 import Data.Constraint
 import Data.Coerce
