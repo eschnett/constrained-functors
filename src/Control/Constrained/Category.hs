@@ -45,8 +45,9 @@ class Semigroupoid (k :: CatKind) where
 class Semigroupoid k => Category (k :: CatKind) where
   id :: Ok k a => k a a
 
--- | A subcategory
--- A subcategories is a functors, but there is no data type associated with it.
+-- | A (full) subcategory
+-- A subcategory has an inclusion functor, but we don't require that
+-- there is a concrete data type associated with it.
 class (Category k, Category l) => SubCatOf k l where
   proveSubCatOf :: Ok k a :- Ok l a
   embed :: Ok k a => Ok k b => k a b -> l a b

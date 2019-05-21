@@ -194,6 +194,9 @@ prop_UIdentity_Functor_compose :: Fun B C -> Fun A B -> UIdentity A -> Property
 prop_UIdentity_Functor_compose (Fn g) (Fn f) =
   fcmp $ law_Functor_compose (PFun g) (PFun f)
 
+prop_UIdentity_Inclusion_faithful :: A -> Property
+prop_UIdentity_Inclusion_faithful x = cmp $ law_Inclusion_faithful @UIdentity x
+
 prop_UIdentity_Apply_assoc :: ((UIdentity A, UIdentity B), UIdentity C)
                            -> Property
 prop_UIdentity_Apply_assoc = fcmp $ law_Apply_assoc

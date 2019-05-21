@@ -6,6 +6,8 @@ module Control.Constrained.Functor
   , Functor(..)
   , law_Functor_id
   , law_Functor_compose
+  , Inclusion(..)
+  , law_Inclusion_faithful
   ) where
 
 import qualified Prelude as P
@@ -57,6 +59,23 @@ law_Functor_compose g f = (fmap (g . f), fmap g . fmap f)
                           \\ proveFunctor @f @a
                           \\ proveFunctor @f @b
                           \\ proveFunctor @f @c
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+-- | An inclusion functor of a subcategory
+-- 'f' needs to be injective; how do we test that?
+class (Functor f, SubCatOf (Dom f) (Cod f)) => Inclusion f where
+  inclusion :: Ok (Dom f) a => a -> f a
+  runInclusion :: Ok (Dom f) a => f a -> a
+
+law_Inclusion_faithful :: forall f a k.
+                          Inclusion f => k ~ Dom f => Ok k a
+                       => a -> (a, a)
+law_Inclusion_faithful x = (x, runInclusion @f (inclusion x))
 
 
 
@@ -144,3 +163,9 @@ instance Functor V.Vector where
   type Dom V.Vector = (->)
   type Cod V.Vector = (->)
   fmap f = P.fmap f
+
+
+
+instance Inclusion Identity where
+  inclusion = Identity
+  runInclusion = runIdentity

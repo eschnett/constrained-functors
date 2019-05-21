@@ -337,6 +337,10 @@ instance Functor UIdentity where
   type Cod UIdentity = (->)
   fmap (PFun f) = \(UIdentity x) -> UIdentity (f x)
 
+instance Inclusion UIdentity where
+  inclusion = UIdentity
+  runInclusion = runUIdentity
+
 instance Foldable UIdentity where
   foldMap (PFun f) (UIdentity x) = f x
 
@@ -344,10 +348,8 @@ instance Apply UIdentity where
   liftA2uu (PFun f) = \(UIdentity x, UIdentity y) -> UIdentity (f (x, y))
 
 instance Semicomonad UIdentity where
-  type Id UIdentity = UIdentity
-  runId = runUIdentity
-  proveFunctorId = proveFunctor @UIdentity
-  extend f = \xs -> UIdentity (runId @UIdentity (f xs))
+  type Incl UIdentity = UIdentity
+  extend f = \xs -> UIdentity (runInclusion @UIdentity (f xs))
 
 
 
@@ -379,10 +381,9 @@ instance Apply UIVector where
                         UIVector (min i j) (U.zipWith (curry f) xs ys)
 
 instance Semicomonad UIVector where
-  type Id UIVector = UIdentity
-  runId = runUIdentity
-  proveFunctorId = proveFunctor @UIdentity
+  type Incl UIVector = UIdentity
   extend f = \(UIVector i xs) ->
                let n = U.length xs
-                   ys = [runId @UIVector (f (UIVector j xs)) | j <- [0..n-1]]
+                   ys = [ runInclusion (f (UIVector j xs))
+                        | j <- [0..n-1] ]
                in UIVector i (U.fromListN n ys)
