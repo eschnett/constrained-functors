@@ -3,7 +3,7 @@
 
 module MonadSpec where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Category

@@ -3,7 +3,7 @@
 
 module CartesianSpec where
 
-import qualified Prelude as P
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Cartesian

@@ -3,7 +3,7 @@
 
 module FunctorSpec where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Functor
@@ -14,7 +14,7 @@ import qualified Data.Functor.Sum as F
 import qualified Data.List.NonEmpty as NE
 import Data.Proxy
 import Test.QuickCheck
-import Test.QuickCheck.Instances2()
+import Test.QuickCheck.Instances2 ()
 import Test.QuickCheck.Poly
 
 

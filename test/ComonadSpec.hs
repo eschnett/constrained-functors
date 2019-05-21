@@ -3,7 +3,7 @@
 
 module ComonadSpec where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Category
@@ -13,7 +13,7 @@ import qualified Data.Functor.Sum as F
 import qualified Data.List.NonEmpty as NE
 import Data.Proxy
 import Test.QuickCheck
-import Test.QuickCheck.Instances.Semigroup()
+import Test.QuickCheck.Instances.Semigroup ()
 import Test.QuickCheck.Poly
 
 

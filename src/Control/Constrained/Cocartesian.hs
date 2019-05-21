@@ -16,7 +16,7 @@ module Control.Constrained.Cocartesian
   , law_Cocartesian_jam
   ) where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Category

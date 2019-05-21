@@ -10,7 +10,7 @@ module Control.Constrained.Comonad'
   , law_Semicomonad_rightId
   ) where
 
-import Prelude()
+import Prelude ()
 
 import Control.Constrained.Category
 import Control.Constrained.Functor

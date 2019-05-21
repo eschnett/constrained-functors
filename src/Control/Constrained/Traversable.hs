@@ -5,7 +5,7 @@ module Control.Constrained.Traversable
   ( Traversable(..)
   ) where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Applicative (ZipList(..))

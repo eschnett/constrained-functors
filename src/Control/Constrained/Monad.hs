@@ -7,7 +7,7 @@ module Control.Constrained.Monad
   , Kleisli(..)
   ) where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Cartesian

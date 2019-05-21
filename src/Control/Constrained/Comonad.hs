@@ -12,7 +12,7 @@ module Control.Constrained.Comonad
   , Cokleisli(..)
   ) where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Category

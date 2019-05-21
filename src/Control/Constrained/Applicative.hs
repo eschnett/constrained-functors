@@ -10,7 +10,7 @@ module Control.Constrained.Applicative
   , law_Applicative_rightUnit
   ) where
 
-import Prelude()
+import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Applicative (ZipList(..))
