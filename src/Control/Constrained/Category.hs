@@ -62,7 +62,7 @@ eval = embed
 
 
 
-law_Semigroupoid_assoc :: Category k => Ok k a => Ok k b => Ok k c => Ok k d
+law_Semigroupoid_assoc :: Semigroupoid k => Ok k a => Ok k b => Ok k c => Ok k d
                        => k c d -> k b c -> k a b -> (k a d, k a d)
 law_Semigroupoid_assoc h g f = ((h . g) . f, h . (g . f))
 

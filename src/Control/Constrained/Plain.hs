@@ -4,25 +4,39 @@
 module Control.Constrained.Plain
   ( PCon
   , type (-#>)(..)
+    -- Endofunctors
+  , PProxy(..)
+  , PIdentity(..)
+  , PTuple(..)
+  , PProduct(..)
+  , PCompose(..)
+    -- Exofunctors
+  , UIdentity(..)
+  , UIVector
+  , uivector
+  , getUIVector
+  , getUIndex
   ) where
 
-import Prelude()
+import qualified Prelude as P
 import Control.Constrained.Prelude
 
 import Control.Constrained.Applicative
 import Control.Constrained.Cartesian
 import Control.Constrained.Category
 import Control.Constrained.Closed
+import Control.Constrained.Comonad'
 import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Traversable
 import Data.Binary
 import Data.Constraint
 import Data.Coerce
-import qualified Data.Monoid as M
 import qualified Data.Vector.Unboxed as U
 import Data.Vector.Unboxed.Deriving
 import GHC.Generics
+import Test.QuickCheck
+import Test.QuickCheck.Instances()
 
 
 
@@ -63,8 +77,7 @@ instance Cartesian (-#>) where
 
 
 
-derivingUnbox "Monoid_Sum"
-    [t| forall a. U.Unbox a => M.Sum a -> a |] [| coerce |] [| coerce |]
+--------------------------------------------------------------------------------
 
 
 
@@ -76,6 +89,11 @@ instance Binary (PProxy a)
 derivingUnbox "PProxy"
     [t| forall a. PProxy a -> () |] [| \PProxy -> () |] [| \() -> PProxy |]
 
+instance Arbitrary (PProxy a) where
+  arbitrary = (\() -> PProxy) <$> arbitrary
+instance CoArbitrary (PProxy a)
+instance Function (PProxy a)
+
 newtype PIdentity a = PIdentity a
   deriving (Eq, Ord, Read, Show, Generic)
 
@@ -83,6 +101,11 @@ instance Binary a => Binary (PIdentity a)
 
 derivingUnbox "PIdentity"
     [t| forall a. U.Unbox a => PIdentity a -> a |] [| coerce |] [| coerce |]
+
+instance Arbitrary a => Arbitrary (PIdentity a) where
+  arbitrary = PIdentity <$> arbitrary
+instance CoArbitrary a => CoArbitrary (PIdentity a)
+instance Function a => Function (PIdentity a)
 
 data PTuple a b = PTuple a b
   deriving (Eq, Ord, Read, Show, Generic)
@@ -93,6 +116,11 @@ derivingUnbox "PTuple"
     [t| forall a b. (U.Unbox a, U.Unbox b) => PTuple a b -> (a, b) |]
     [| \(PTuple x y) -> (x, y) |]
     [| \(x, y) -> PTuple x y |]
+
+instance Arbitrary (a, b) => Arbitrary (PTuple a b) where
+  arbitrary = uncurry PTuple <$> arbitrary
+instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (PTuple a b)
+instance (Function a, Function b) => Function (PTuple a b)
 
 data PProduct f g a = PPair (f a) (g a)
   deriving (Eq, Ord, Read, Show, Generic)
@@ -105,6 +133,11 @@ derivingUnbox "PProduct"
     [| \(PPair xs xs') -> (xs, xs') |]
     [| \(xs, xs') -> PPair xs xs' |]
 
+instance Arbitrary (f a, g a) => Arbitrary (PProduct f g a) where
+  arbitrary = uncurry PPair <$> arbitrary
+instance (CoArbitrary (f a), CoArbitrary (g a)) => CoArbitrary (PProduct f g a)
+instance (Function (f a), Function (g a)) => Function (PProduct f g a)
+
 newtype PCompose f g a = PCompose (f (g a))
   deriving (Eq, Ord, Read, Show, Generic)
 
@@ -114,6 +147,11 @@ derivingUnbox "PCompose"
     [t| forall f g a. U.Unbox (f (g a)) => PCompose f g a -> f (g a) |]
     [| coerce |]
     [| coerce |]
+
+instance Arbitrary (f (g a)) => Arbitrary (PCompose f g a) where
+  arbitrary = PCompose <$> arbitrary
+instance CoArbitrary (f (g a)) => CoArbitrary (PCompose f g a)
+instance Function (f (g a)) => Function (PCompose f g a)
 
 
 
@@ -261,6 +299,58 @@ instance PCon a => Traversable (PTuple a) where
 
 
 
+--------------------------------------------------------------------------------
+
+
+
+newtype UIdentity a = UIdentity { runUIdentity :: a }
+  deriving (Eq, Ord, Read, Show, Generic)
+
+instance Arbitrary a => Arbitrary (UIdentity a) where
+  arbitrary = UIdentity <$> arbitrary
+instance CoArbitrary a => CoArbitrary (UIdentity a)
+instance Function a => Function (UIdentity a)
+
+data UIVector a = UIVector { getUIndex :: Int
+                           , getUIVector :: U.Vector a
+                           }
+  deriving (Eq, Ord, Read, Show, Generic)
+
+uivector :: U.Vector a -> UIVector a
+uivector xs = UIVector 0 xs
+
+instance (Arbitrary (U.Vector a), U.Unbox a) => Arbitrary (UIVector a) where
+  arbitrary = do xs <- arbitrary
+                 let n = U.length xs
+                 i <- if n == 0 then P.return (-1) else choose (0, n-1)
+                 P.return (UIVector i xs)
+  shrink xs = limitIndex <$> genericShrink xs
+    where limitIndex (UIVector j ys) = UIVector (min j (U.length ys - 1)) ys
+instance CoArbitrary (U.Vector a) => CoArbitrary (UIVector a)
+instance Function (U.Vector a) => Function (UIVector a)
+
+
+
+instance Functor UIdentity where
+  proveFunctor = Sub Dict
+  type Dom UIdentity = (-#>)
+  type Cod UIdentity = (->)
+  fmap (PFun f) = \(UIdentity x) -> UIdentity (f x)
+
+instance Foldable UIdentity where
+  foldMap (PFun f) (UIdentity x) = f x
+
+instance Apply UIdentity where
+  liftA2uu (PFun f) = \(UIdentity x, UIdentity y) -> UIdentity (f (x, y))
+
+instance Semicomonad UIdentity where
+  type Id UIdentity = UIdentity
+  runId = runUIdentity
+  proveFunctorId = proveFunctor @UIdentity
+  extend f = \xs -> UIdentity (runId @UIdentity (f xs))
+
+
+
 instance Functor U.Vector where
   proveFunctor = Sub Dict
   type Dom U.Vector = (-#>)
@@ -273,4 +363,26 @@ instance Foldable U.Vector where
 instance Apply U.Vector where
   liftA2uu (PFun f) = uncurry (U.zipWith (curry f))
 
---  Semicomonad
+
+
+instance Functor UIVector where
+  type Dom UIVector = (-#>)
+  type Cod UIVector = (->)
+  proveFunctor = Sub Dict
+  fmap f = \(UIVector i xs) -> UIVector i (fmap f xs)
+
+instance Foldable UIVector where
+  foldMap f = \(UIVector _ xs) -> foldMap f xs
+
+instance Apply UIVector where
+  liftA2uu (PFun f) = \(UIVector i xs, UIVector j ys) ->
+                        UIVector (min i j) (U.zipWith (curry f) xs ys)
+
+instance Semicomonad UIVector where
+  type Id UIVector = UIdentity
+  runId = runUIdentity
+  proveFunctorId = proveFunctor @UIdentity
+  extend f = \(UIVector i xs) ->
+               let n = U.length xs
+                   ys = [runId @UIVector (f (UIVector j xs)) | j <- [0..n-1]]
+               in UIVector i (U.fromListN n ys)

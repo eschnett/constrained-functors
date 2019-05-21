@@ -7,6 +7,7 @@ import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Plain
 import qualified Data.Monoid as M
+import Data.Monoid.Instances()
 import qualified Data.Vector.Unboxed as U
 
 

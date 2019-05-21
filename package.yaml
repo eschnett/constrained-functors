@@ -84,6 +84,7 @@ library:
     - base
     - binary
     - constraints
+    - quickcheck-instances
     - vector
     - vector-th-unbox
   source-dirs: src

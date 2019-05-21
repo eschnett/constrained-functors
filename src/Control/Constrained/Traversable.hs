@@ -26,7 +26,7 @@ import qualified Data.Vector as V
 -- | Traversable:
 -- TOOD: Only endofunctors are traversable? Really???
 -- See Jaskelioff, Rypacek, "An Investigation of the Laws of
--- Traversals", <https://arxiv.org/pdf/1202.2919.pdf>
+-- Traversals", <https://arxiv.org/abs/1202.2919>
 class (Foldable f, Dom f ~ Cod f) => Traversable f where
   {-# MINIMAL sequenceA | mapTraverse | traverse #-}
   sequenceA :: forall g a k.
