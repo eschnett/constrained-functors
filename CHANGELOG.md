@@ -1,7 +1,7 @@
 # Change log
 
-constrained-categories uses [Semantic Versioning][].
+constrained-functors uses [Semantic Versioning][].
 The change log is available through the [releases on GitHub][].
 
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
-[releases on GitHub]: https://github.com/eschnett/constrained-categories/releases
+[releases on GitHub]: https://github.com/eschnett/constrained-functors/releases

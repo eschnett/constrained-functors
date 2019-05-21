@@ -1,14 +1,14 @@
 # This YAML file describes your package. Stack will automatically generate a
 # Cabal file when you run `stack build`. See the hpack website for help with
 # this file: <https://github.com/sol/hpack>.
-name: constrained-categories
+name: constrained-functors
 version: '0.0.0'
-github: "eschnett/constrained-categories"
+github: "eschnett/constrained-functors"
 license: MIT
 author: "Erik Schnetter"
 maintainer: "Erik Schnetter"
 # synopsis: A new Haskell package.
-# description: constrained-categories is a new Haskell package.
+# description: constrained-functors is a new Haskell package.
 # category: Other
 
 extra-source-files:
@@ -90,12 +90,12 @@ library:
   source-dirs: src
 
 executables:
-  constrained-categories:
+  constrained-functors:
     source-dirs: app
     main: Main.hs
     dependencies:
       - base
-      - constrained-categories
+      - constrained-functors
       - vector
     ghc-options:
       - -rtsopts
@@ -103,12 +103,12 @@ executables:
       - -with-rtsopts=-N
 
 benchmarks:
-  constrained-categories-benchmarks:
+  constrained-functors-benchmarks:
     source-dirs: bench
     main: Main.hs
     dependencies:
       - base
-      - constrained-categories
+      - constrained-functors
       - criterion
     ghc-options:
       - -rtsopts
@@ -116,13 +116,13 @@ benchmarks:
       - -with-rtsopts=-N
 
 tests:
-  constrained-categories-test-suite:
+  constrained-functors-test-suite:
     source-dirs: test
     main: Main.hs
     dependencies:
       - QuickCheck
       - base
-      - constrained-categories
+      - constrained-functors
       - quickcheck-instances
       - tasty
       - tasty-discover
