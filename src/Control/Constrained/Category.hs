@@ -9,7 +9,8 @@ module Control.Constrained.Category
   , law_Category_leftId
   , law_Category_rightId
   , SubCatOf(..)
-  , law_SubCatOf_embedId
+  , law_SubCatOf_id
+  , law_SubCatOf_compose
   , HaskSubCat
   , eval
   ) where
@@ -48,13 +49,21 @@ class Semigroupoid k => Category (k :: CatKind) where
 -- | A (full) subcategory
 -- A subcategory has an inclusion functor, but we don't require that
 -- there is a concrete data type associated with it.
-class (Category k, Category l) => SubCatOf k l where
+class (Semigroupoid k, Semigroupoid l) => SubCatOf k l where
   proveSubCatOf :: Ok k a :- Ok l a
   embed :: Ok k a => Ok k b => k a b -> l a b
 
+-- | Each category is a subcategory of itself
+instance Semigroupoid k => SubCatOf k k where
+  proveSubCatOf = Sub Dict
+  embed = id
+
+-- The subcategory relationship is transitive, but we don't describe
+-- this to avoid duplicate instances.
+
 -- | A subcategory of Hask, where functions can be evaluated
-class SubCatOf k (->) => HaskSubCat k
-instance SubCatOf k (->) => HaskSubCat k
+class k `SubCatOf` (->) => HaskSubCat k
+instance k `SubCatOf` (->) => HaskSubCat k
 
 eval :: forall k a b.
         HaskSubCat k => Ok k a => Ok k b => k a b -> a -> b
@@ -75,12 +84,19 @@ law_Category_rightId :: Category k => Ok k a => Ok k b
                      => k a b -> (k a b, k a b)
 law_Category_rightId f = (f . id, f)
 
-law_SubCatOf_embedId :: forall k l a. SubCatOf k l => Ok k a
-                       => (l a a, l a a)
-law_SubCatOf_embedId = (id @l, embed (id @k))
-                       \\ proveSubCatOf @k @l @a
+law_SubCatOf_id :: forall k l a.
+                   (Category k, Category l, SubCatOf k l) => Ok k a
+                => (l a a, l a a)
+law_SubCatOf_id = (id @l, embed (id @k))
+                  \\ proveSubCatOf @k @l @a
 
--- TODO: also prove functor composition...
+law_SubCatOf_compose :: forall k l a b c.
+                        SubCatOf k l => Ok k a => Ok k b => Ok k c
+                     => k b c -> k a b -> (l a c, l a c)
+law_SubCatOf_compose g f = (embed (g . f), embed g . embed f)
+                           \\ proveSubCatOf @k @l @a
+                           \\ proveSubCatOf @k @l @b
+                           \\ proveSubCatOf @k @l @c
 
 
 
@@ -98,7 +114,3 @@ instance Semigroupoid (->) where
 
 instance Category (->) where
   id = P.id
-
-instance SubCatOf (->) (->) where
-  proveSubCatOf = Sub Dict
-  embed = P.id

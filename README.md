@@ -22,4 +22,4 @@ and his Haskell package [`concat`](https://github.com/conal/concat/).
 ## Related Work
 
 * [`subhask`](http://hackage.haskell.org/package/subhask)
-* [`constrained-functors`](https://github.com/leftaroundabout/constrained-categories)
+* [`constrained-categories`](https://github.com/leftaroundabout/constrained-categories)

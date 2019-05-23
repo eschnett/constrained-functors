@@ -287,13 +287,15 @@ instance ( Applicative f, Applicative g, Dom f ~ Cod g
 
 
 instance Traversable PProxy where
-  sequenceA = PFun (\_ -> pure PProxy)
+  mapTraverse g _ = PFun \_ -> pure (runPFun g PProxy)
   
 instance Traversable PIdentity where
-  sequenceA = PFun \(PIdentity xs) -> runPFun (fmap (PFun PIdentity)) xs
+  mapTraverse g f =
+    PFun \(PIdentity x) -> runPFun (fmap (g . PFun PIdentity)) (runPFun f x)
 
-instance PCon a => Traversable (PTuple a) where
-  sequenceA = PFun \(PTuple a xs) -> runPFun (fmap (PFun (PTuple a))) xs
+instance PCon p => Traversable (PTuple p) where
+  mapTraverse g f =
+    PFun \(PTuple a x) -> runPFun (fmap (g . PFun (PTuple a))) (runPFun f x)
 
 -- TODO: F.Product F.Compose
 
@@ -337,9 +339,9 @@ instance Functor UIdentity where
   type Cod UIdentity = (->)
   fmap (PFun f) = \(UIdentity x) -> UIdentity (f x)
 
-instance Inclusion UIdentity where
-  inclusion = UIdentity
-  runInclusion = runUIdentity
+-- instance Inclusion UIdentity where
+--   inclusion = UIdentity
+--   runInclusion = runUIdentity
 
 instance Foldable UIdentity where
   foldMap (PFun f) (UIdentity x) = f x
@@ -347,9 +349,11 @@ instance Foldable UIdentity where
 instance Apply UIdentity where
   liftA2uu (PFun f) = \(UIdentity x, UIdentity y) -> UIdentity (f (x, y))
 
+instance Traversable UIdentity where
+  mapTraverse g f = \(UIdentity x) -> fmap (PFun (g . UIdentity)) (f x)
+
 instance Semicomonad UIdentity where
-  type Incl UIdentity = UIdentity
-  extend f = \xs -> UIdentity (runInclusion @UIdentity (f xs))
+  extend f = \xs -> UIdentity (f xs)
 
 
 
@@ -381,9 +385,7 @@ instance Apply UIVector where
                         UIVector (min i j) (U.zipWith (curry f) xs ys)
 
 instance Semicomonad UIVector where
-  type Incl UIVector = UIdentity
   extend f = \(UIVector i xs) ->
                let n = U.length xs
-                   ys = [ runInclusion (f (UIVector j xs))
-                        | j <- [0..n-1] ]
+                   ys = [f (UIVector j xs) | j <- [0..n-1]]
                in UIVector i (U.fromListN n ys)

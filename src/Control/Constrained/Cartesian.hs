@@ -6,6 +6,8 @@ module Control.Constrained.Cartesian
     Cartesian(..)
   , const
   , runUnitArrow
+  , mkProd
+  , SubCartOf(..)
   , law_Cartesian_leftUnit1
   , law_Cartesian_leftUnit2
   , law_Cartesian_rightUnit1
@@ -95,6 +97,18 @@ runUnitArrow :: forall k a u.
                 Cartesian k => HaskSubCat k => u ~ Unit k => Ok k a
              => k u a -> a
 runUnitArrow f = eval f (unit @k)
+
+mkProd :: forall k a b p.
+          Cartesian k => HaskSubCat k => p ~ Product k => Ok k a => Ok k b
+       => a -> b -> p a b
+mkProd x y = runUnitArrow (fork @k (unitArrow x) (unitArrow y))
+             \\ proveCartesian @k @a @b
+
+class (k `SubCatOf` l, Cartesian k, Cartesian l) => SubCartOf k l where
+  embedProd :: Ok k a => Ok k b => Product k a b -> Product l a b
+
+instance Cartesian k => SubCartOf k k where
+  embedProd = id
 
 
 

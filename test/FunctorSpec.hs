@@ -44,8 +44,8 @@ prop_Identity_Functor_id = fcmp $ law_Functor_id
 prop_Identity_Functor_compose :: Fun B C -> Fun A B -> Identity A -> Property
 prop_Identity_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
-prop_Identity_Inclusion_faithful :: A -> Property
-prop_Identity_Inclusion_faithful x = cmp $ law_Inclusion_faithful @Identity x
+-- prop_Identity_Inclusion_faithful :: A -> Property
+-- prop_Identity_Inclusion_faithful x = cmp $ law_Inclusion_faithful @Identity x
 
 
 

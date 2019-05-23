@@ -4,6 +4,8 @@
 module Control.Constrained.Cocartesian
   ( -- * Cocartesian categories
     Cocartesian(..)
+  , mkCoprod
+  , SubCocartOf(..)
   , law_Cocartesian_leftZero1
   , law_Cocartesian_leftZero2
   , law_Cocartesian_rightZero1
@@ -33,8 +35,8 @@ import qualified Data.Void
 
 -- | A Cocartesian category has coproducts (sums)
 class (Category k, Ok k (Zero k)) => Cocartesian k where
-  {-# MINIMAL proveCocartesian, coprod, inl, inr, (join | jam), absurd, lzero,
-              rzero, coassoc, coreassoc, coswap #-}
+  {-# MINIMAL proveCocartesian, coprod, inl, inr, (join | jam), lzero, rzero,
+              coassoc, coreassoc, coswap #-}
 
   -- | Prove that the category is Cartesian, i.e. that the coproduct
   -- is an object in the category
@@ -67,7 +69,8 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
           s ~ Coproduct k => Ok k a => Ok k b => Ok k c
        => k a c -> k b c -> k (s a b) c
   join f g = jam . coprod f g
-             \\ proveCocartesian @k @a @b *** proveCocartesian @k @c @c
+             \\ proveCocartesian @k @a @b
+             \\ proveCocartesian @k @c @c
 
   -- | Extract an object from a duplicate coproduct
   jam :: s ~ Coproduct k => Ok k a => k (s a a) a
@@ -75,6 +78,11 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
 
   -- | Map the zero object to any object
   absurd :: z ~ Zero k => Ok k a => k z a
+  absurd = undefined
+
+  -- | Create a value from nothing ("ex falso quodlibet")
+  zeroArrow :: z ~ Zero k => Ok k a => k a z -> a
+  zeroArrow _ = undefined
 
   lzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => k (s z a) a
   rzero :: s ~ Coproduct k => z ~ Zero k => Ok k a => k (s a z) a
@@ -83,6 +91,19 @@ class (Category k, Ok k (Zero k)) => Cocartesian k where
   coreassoc :: s ~ Coproduct k => Ok k a => Ok k b => Ok k c
             => k (s a (s b c)) (s (s a b) c)
   coswap :: s ~ Coproduct k => Ok k a => Ok k b => k (s a b) (s b a)
+
+mkCoprod :: forall k a b s.
+            Cocartesian k => HaskSubCat k => s ~ Coproduct k => Ok k a => Ok k b
+         => Either a b -> s a b
+mkCoprod = \case Left x -> eval (inl @k) x
+                 Right y -> eval (inr @k) y
+           \\ proveCocartesian @k @a @b
+
+class (k `SubCatOf` l, Cocartesian k, Cocartesian l) => SubCocartOf k l where
+  embedCoprod :: Ok k a => Ok k b => Coproduct k a b -> Coproduct l a b
+
+instance Cocartesian k => SubCocartOf k k where
+  embedCoprod = id
 
 
 
@@ -179,7 +200,6 @@ instance Cocartesian (->) where
   inl = Left
   inr = Right
   join = either
-  absurd = Data.Void.absurd
 
   lzero = \case Left _ -> error "Void"
                 Right x -> x

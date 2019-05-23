@@ -68,7 +68,7 @@ law_Functor_compose g f = (fmap (g . f), fmap g . fmap f)
 
 -- | An inclusion functor of a subcategory
 -- 'f' needs to be injective; how do we test that?
-class (Functor f, SubCatOf (Dom f) (Cod f)) => Inclusion f where
+class (Functor f, Dom f `SubCatOf` Cod f) => Inclusion f where
   inclusion :: Ok (Dom f) a => a -> f a
   runInclusion :: Ok (Dom f) a => f a -> a
 
@@ -166,6 +166,6 @@ instance Functor V.Vector where
 
 
 
-instance Inclusion Identity where
-  inclusion = Identity
-  runInclusion = runIdentity
+-- instance Inclusion Identity where
+--   inclusion = Identity
+--   runInclusion = runIdentity

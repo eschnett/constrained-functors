@@ -33,5 +33,8 @@ prop_Hask_Category_leftId (Fn f) = fcmp $ law_Category_leftId @(->) f
 prop_Hask_Category_rightId :: Fun A B -> A -> Property
 prop_Hask_Category_rightId (Fn f) = fcmp $ law_Category_rightId @(->) f
 
-prop_Hask_SubCatOf_evalId :: A -> Property
-prop_Hask_SubCatOf_evalId = fcmp $ law_SubCatOf_embedId @(->)
+prop_Hask_SubCatOf_id :: A -> Property
+prop_Hask_SubCatOf_id = fcmp $ law_SubCatOf_id @(->)
+
+prop_Hask_SubCatOf_compose :: Fun B C -> Fun A B -> A -> Property
+prop_Hask_SubCatOf_compose (Fn g) (Fn f) = fcmp $ law_SubCatOf_compose g f

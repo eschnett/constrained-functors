@@ -41,8 +41,12 @@ prop_PFun_Category_leftId (Fn f) = fcmp $ law_Category_leftId @(-#>) (PFun f)
 prop_PFun_Category_rightId :: Fun A B -> A -> Property
 prop_PFun_Category_rightId (Fn f) = fcmp $ law_Category_rightId @(-#>) (PFun f)
 
-prop_PFun_SubCatOf_embedId :: A -> Property
-prop_PFun_SubCatOf_embedId = fcmp $ law_SubCatOf_embedId @(-#>) @(->)
+prop_PFun_SubCatOf_id :: A -> Property
+prop_PFun_SubCatOf_id = fcmp $ law_SubCatOf_id @(-#>) @(->)
+
+prop_Hask_SubCatOf_compose :: Fun B C -> Fun A B -> A -> Property
+prop_Hask_SubCatOf_compose (Fn g) (Fn f) =
+  fcmp $ law_SubCatOf_compose @(-#>) @(->) (PFun g) (PFun f)
 
 
 
@@ -194,8 +198,8 @@ prop_UIdentity_Functor_compose :: Fun B C -> Fun A B -> UIdentity A -> Property
 prop_UIdentity_Functor_compose (Fn g) (Fn f) =
   fcmp $ law_Functor_compose (PFun g) (PFun f)
 
-prop_UIdentity_Inclusion_faithful :: A -> Property
-prop_UIdentity_Inclusion_faithful x = cmp $ law_Inclusion_faithful @UIdentity x
+-- prop_UIdentity_Inclusion_faithful :: A -> Property
+-- prop_UIdentity_Inclusion_faithful x = cmp $ law_Inclusion_faithful @UIdentity x
 
 prop_UIdentity_Apply_assoc :: ((UIdentity A, UIdentity B), UIdentity C)
                            -> Property
@@ -213,25 +217,25 @@ prop_UIVector_Functor_compose (Fn g) (Fn f) =
 prop_UIVector_Apply_assoc :: ((UIVector A, UIVector B), UIVector C) -> Property
 prop_UIVector_Apply_assoc = fcmp $ law_Apply_assoc
 
-prop_UIVector_Semicomonad_compose :: Fun (UIVector B) (UIdentity C)
-                                  -> Fun (UIVector A) (UIdentity B)
+prop_UIVector_Semicomonad_compose :: Fun (UIVector B) C
+                                  -> Fun (UIVector A) B
                                   -> UIVector A
                                   -> Property
 prop_UIVector_Semicomonad_compose (Fn g) (Fn f) =
   fcmp $ law_Semicomonad_compose g f
 
-prop_UIVector_Semicomonad_assoc :: Fun (UIVector C) (UIdentity A)
-                                -> Fun (UIVector B) (UIdentity C)
-                                -> Fun (UIVector A) (UIdentity B)
+prop_UIVector_Semicomonad_assoc :: Fun (UIVector C) A
+                                -> Fun (UIVector B) C
+                                -> Fun (UIVector A) B
                                 -> UIVector A
                                 -> Property
 prop_UIVector_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
   fcmp $ law_Semicomonad_assoc h g f
 
 prop_Cokleisli_UIVector_Semigroupoid_assoc
-  :: Fun (UIVector C) (UIdentity A)
-  -> Fun (UIVector B) (UIdentity C)
-  -> Fun (UIVector A) (UIdentity B)
+  :: Fun (UIVector C) A
+  -> Fun (UIVector B) C
+  -> Fun (UIVector A) B
   -> UIVector A
   -> Property
 prop_Cokleisli_UIVector_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =

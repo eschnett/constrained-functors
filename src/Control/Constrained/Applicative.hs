@@ -41,7 +41,9 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
           => Ok (Dom f) a => Ok (Dom f) b => Ok (Dom f) c
           => Dom f (p a b) c -> Cod f (f a) (Cod f (f b) (f c))
   liftA2u f = curry (liftA2uu f)
-    \\ proveFunctor @f @a *** proveFunctor @f @b *** proveFunctor @f @c
+              \\ proveFunctor @f @a
+              \\ proveFunctor @f @b
+              \\ proveFunctor @f @c
   liftA2 :: forall a b c.
             Closed (Dom f) => Closed (Cod f)
          => Ok (Dom f) a => Ok (Dom f) b => Ok (Dom f) c
