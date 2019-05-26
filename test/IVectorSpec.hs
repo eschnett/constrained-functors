@@ -37,6 +37,13 @@ prop_IVector_Apply_assoc = fcmp $ law_Apply_assoc
 
 
 
+prop_IVector_Semicomonad_compose :: Fun (IVector B) C
+                                 -> Fun (IVector A) B
+                                 -> IVector A
+                                 -> Property
+prop_IVector_Semicomonad_compose (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_compose g f
+
 prop_IVector_Semicomonad_assoc :: Fun (IVector C) A
                                -> Fun (IVector B) C
                                -> Fun (IVector A) B
@@ -45,8 +52,12 @@ prop_IVector_Semicomonad_assoc :: Fun (IVector C) A
 prop_IVector_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
   fcmp $ law_Semicomonad_assoc h g f
 
-prop_IVector_Semicomonad_extend :: Fun (IVector A) B -> IVector A -> Property
-prop_IVector_Semicomonad_extend (Fn f) = fcmp $ law_Semicomonad_extend f
+prop_IVector_Semicomonad_extend :: Fun (IVector B) C
+                                -> Fun (IVector A) B
+                                -> IVector A
+                                -> Property
+prop_IVector_Semicomonad_extend (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_extend g f
 
 prop_IVector_Semicomonad_duplicate :: IVector A -> Property
 prop_IVector_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate

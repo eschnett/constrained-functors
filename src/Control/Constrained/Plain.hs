@@ -25,7 +25,7 @@ import Control.Constrained.Applicative
 import Control.Constrained.Cartesian
 import Control.Constrained.Category
 import Control.Constrained.Closed
-import Control.Constrained.Comonad'
+import Control.Constrained.Comonad
 import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Traversable

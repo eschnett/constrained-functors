@@ -3,6 +3,8 @@
 
 module Control.Constrained.Traversable
   ( Traversable(..)
+  , law_AppTrans_pure
+  , law_AppTrans_lift
   ) where
 
 import Prelude ()
@@ -12,7 +14,6 @@ import Control.Applicative (ZipList(..))
 import Control.Constrained.Applicative
 import Control.Constrained.Cartesian
 import Control.Constrained.Category
-import Control.Constrained.Closed
 import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Data.Constraint

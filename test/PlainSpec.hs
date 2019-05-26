@@ -8,7 +8,7 @@ import Control.Constrained.Prelude
 import Control.Constrained.Applicative
 import Control.Constrained.Cartesian
 import Control.Constrained.Category
-import Control.Constrained.Comonad'
+import Control.Constrained.Comonad
 import Control.Constrained.Functor
 import Control.Constrained.Plain
 import Test.QuickCheck
