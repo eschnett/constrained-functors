@@ -25,7 +25,6 @@ import Control.Constrained.Category
 import Data.Constraint
 import Data.Kind
 import Data.Void hiding (absurd)
-import qualified Data.Void
 
 
 
