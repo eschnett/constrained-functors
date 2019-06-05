@@ -9,13 +9,17 @@ import qualified Prelude as P
 import Control.Constrained.Prelude
 
 import Control.Applicative (ZipList(..))
+import Control.Constrained.Cartesian
 import Control.Constrained.Category
 import Control.Constrained.Functor
+import Data.Constraint
 import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
 import qualified Data.Functor.Sum as F
 import Data.List.NonEmpty (NonEmpty(..))
+import Data.Monoid
+import Data.Monoid.Instances ()
 import Data.Proxy
 import qualified Data.Vector as V
 
@@ -23,8 +27,18 @@ import qualified Data.Vector as V
 
 -- | A foldable functor
 class Functor f => Foldable f where
+  {-# MINIMAL foldMap #-}
   -- | Fold with a monoid
   foldMap :: Monoid b => Ok (Dom f) a => Ok (Dom f) b => Dom f a b -> f a -> b
+
+  length :: Ok (Dom f) a => Ok (Dom f) Int => f a -> Int
+  default length :: forall a k.
+                    k ~ Dom f
+                 => Cartesian k => Ok k a => Ok k Int => Ok k (Sum Int)
+                 => f a -> Int
+  length = getSum . foldMap (const (Sum (1::Int)))
+           \\ proveFunctor @f @Int
+           \\ proveFunctor @f @a
 
 
 

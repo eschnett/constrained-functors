@@ -12,6 +12,7 @@ module Control.Constrained.Plain
   , PCompose(..)
     -- Exofunctors
   , UIdentity(..)
+  , UPair(..)
   , UIVector
   , uivector
   , getUIVector
@@ -29,6 +30,7 @@ import Control.Constrained.Comonad
 import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Traversable
+import Control.Exception (assert)
 import Data.Binary
 import Data.Constraint
 import Data.Coerce
@@ -313,18 +315,26 @@ instance Arbitrary a => Arbitrary (UIdentity a) where
 instance CoArbitrary a => CoArbitrary (UIdentity a)
 instance Function a => Function (UIdentity a)
 
+data UPair a b = UPair { ufst :: a, usnd :: b}
+  deriving (Eq, Ord, Read, Show, Generic)
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (UPair a b) where
+  arbitrary = uncurry UPair <$> arbitrary
+instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (UPair a b)
+instance (Function a, Function b) => Function (UPair a b)
+
 data UIVector a = UIVector { getUIndex :: Int
                            , getUIVector :: U.Vector a
                            }
   deriving (Eq, Ord, Read, Show, Generic)
 
-uivector :: U.Vector a -> UIVector a
-uivector xs = UIVector 0 xs
+uivector :: U.Unbox a => U.Vector a -> UIVector a
+uivector xs = assert (not (U.null xs)) $ UIVector 0 xs
 
 instance (Arbitrary (U.Vector a), U.Unbox a) => Arbitrary (UIVector a) where
-  arbitrary = do xs <- arbitrary
+  arbitrary = do xs <- arbitrary `suchThat` (not P.. U.null)
                  let n = U.length xs
-                 i <- if n == 0 then P.return (-1) else choose (0, n-1)
+                 i <- choose (0, n-1)
                  P.return (UIVector i xs)
   shrink xs = limitIndex <$> genericShrink xs
     where limitIndex (UIVector j ys) = UIVector (min j (U.length ys - 1)) ys
@@ -349,11 +359,53 @@ instance Foldable UIdentity where
 instance Apply UIdentity where
   liftA2uu (PFun f) = \(UIdentity x, UIdentity y) -> UIdentity (f (x, y))
 
+instance Applicative UIdentity where
+  pure x = UIdentity x
+
 instance Traversable UIdentity where
   mapTraverse g f = \(UIdentity x) -> fmap (PFun (g . UIdentity)) (f x)
 
 instance Semicomonad UIdentity where
   extend f = \xs -> UIdentity (f xs)
+
+instance Comonad UIdentity where
+  extract = \(UIdentity x) -> x
+
+
+
+instance Functor (UPair a) where
+  proveFunctor = Sub Dict
+  type Dom (UPair a) = (-#>)
+  type Cod (UPair a) = (->)
+  fmap (PFun f) = \(UPair a x) -> UPair a (f x)
+
+instance Foldable (UPair a) where
+  foldMap (PFun f) (UPair _ x) = f x
+
+instance Semigroup a => Apply (UPair a) where
+  liftA2uu (PFun f) = \(UPair a x, UPair b y) -> UPair (a <> b) (f (x, y))
+
+instance Monoid a => Applicative (UPair a) where
+  pure x = UPair mempty x
+
+instance Traversable (UPair a) where
+  mapTraverse g f = \(UPair a x) -> fmap (PFun (g . (UPair a))) (f x)
+
+instance Semicomonad (UPair a) where
+  extend f = \xs@(UPair a _) -> UPair a (f xs)
+
+instance Comonad (UPair a) where
+  extract = \(UPair _ x) -> x
+
+-- instance ComonadEnv (UPair e) where
+--   type Env (UPair e) = e
+--   ask = \(UPair e _) -> e
+
+instance ComonadStore (UPair s) where
+  type Index (UPair s) = s
+  pos = \(UPair s _) -> s
+  peeku = \(_, UPair _ x) -> x
+  seeku = \(s, UPair _ x) -> UPair s x
 
 
 
@@ -365,6 +417,7 @@ instance Functor U.Vector where
 
 instance Foldable U.Vector where
   foldMap (PFun f) = U.foldl (\r x -> r <> f x) mempty
+  length = U.length
 
 instance Apply U.Vector where
   liftA2uu (PFun f) = uncurry (U.zipWith (curry f))
@@ -379,6 +432,7 @@ instance Functor UIVector where
 
 instance Foldable UIVector where
   foldMap f = \(UIVector _ xs) -> foldMap f xs
+  length = \(UIVector _ xs) -> U.length xs
 
 instance Apply UIVector where
   liftA2uu (PFun f) = \(UIVector i xs, UIVector j ys) ->
@@ -389,3 +443,17 @@ instance Semicomonad UIVector where
                let n = U.length xs
                    ys = [f (UIVector j xs) | j <- [0..n-1]]
                in UIVector i (U.fromListN n ys)
+
+instance Comonad UIVector where
+  extract = \(UIVector i xs) -> xs U.! i
+
+-- instance ComonadEnv UIVector where
+--   type Env UIVector = Int
+--   ask = \(UIVector i _) -> i
+
+instance ComonadStore UIVector where
+  type Index UIVector = Int
+  pos = \(UIVector i _) -> i
+  peeku = \(i, UIVector _ xs) -> xs U.! i
+  seeku = \(i, UIVector _ xs) ->
+    assert (i >= 0 && i < U.length xs) $ UIVector i xs

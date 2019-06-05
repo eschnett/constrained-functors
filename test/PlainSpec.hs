@@ -9,6 +9,7 @@ import Control.Constrained.Applicative
 import Control.Constrained.Cartesian
 import Control.Constrained.Category
 import Control.Constrained.Comonad
+import Control.Constrained.Foldable
 import Control.Constrained.Functor
 import Control.Constrained.Plain
 import Test.QuickCheck
@@ -205,6 +206,160 @@ prop_UIdentity_Apply_assoc :: ((UIdentity A, UIdentity B), UIdentity C)
                            -> Property
 prop_UIdentity_Apply_assoc = fcmp $ law_Apply_assoc
 
+prop_UIdentity_Applicative_leftUnit :: ((), UIdentity A) -> Property
+prop_UIdentity_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
+
+prop_UIdentity_Applicative_rightUnit :: (UIdentity A, ()) -> Property
+prop_UIdentity_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
+
+prop_UIdentity_Semicomonad_compose :: Fun (UIdentity B) C
+                                   -> Fun (UIdentity A) B
+                                   -> UIdentity A
+                                   -> Property
+prop_UIdentity_Semicomonad_compose (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_compose g f
+
+prop_UIdentity_Semicomonad_assoc :: Fun (UIdentity C) A
+                                 -> Fun (UIdentity B) C
+                                 -> Fun (UIdentity A) B
+                                 -> UIdentity A
+                                 -> Property
+prop_UIdentity_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_UIdentity_Semicomonad_extend :: Fun (UIdentity B) C
+                                  -> Fun (UIdentity A) B
+                                  -> UIdentity A
+                                  -> Property
+prop_UIdentity_Semicomonad_extend (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_extend g f
+
+prop_UIdentity_Comonad_leftId :: UIdentity A -> Property
+prop_UIdentity_Comonad_leftId = fcmp $ law_Comonad_leftId
+
+prop_UIdentity_Comonad_rightId :: Fun (UIdentity A) B
+                               -> UIdentity A
+                               -> Property
+prop_UIdentity_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
+prop_Cokleisli_UIdentity_Semigroupoid_assoc
+  :: Fun (UIdentity C) A
+  -> Fun (UIdentity B) C
+  -> Fun (UIdentity A) B
+  -> UIdentity A
+  -> Property
+prop_Cokleisli_UIdentity_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ hask $ law_Semigroupoid_assoc h' g' f'
+  where f' = Cokleisli f
+        g' = Cokleisli g
+        h' = Cokleisli h
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UIdentity_Category_leftId ::
+  Fun (UIdentity A) B -> UIdentity A -> Property
+prop_Cokleisli_UIdentity_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Cokleisli UIdentity) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UIdentity_Category_rightId ::
+  Fun (UIdentity A) B -> UIdentity A -> Property
+prop_Cokleisli_UIdentity_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Cokleisli UIdentity) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+
+
+prop_UPair_Functor_id :: UPair B A -> Property
+prop_UPair_Functor_id = fcmp $ law_Functor_id
+
+prop_UPair_Functor_compose :: Fun B C -> Fun A B -> UPair B A -> Property
+prop_UPair_Functor_compose (Fn g) (Fn f) =
+  fcmp $ law_Functor_compose (PFun g) (PFun f)
+
+prop_UPair_Apply_assoc :: ((UPair B A, UPair B B), UPair B C)
+                           -> Property
+prop_UPair_Apply_assoc = fcmp $ law_Apply_assoc
+
+prop_UPair_Applicative_leftUnit :: ((), UPair B A) -> Property
+prop_UPair_Applicative_leftUnit = fcmp $ law_Applicative_leftUnit
+
+prop_UPair_Applicative_rightUnit :: (UPair B A, ()) -> Property
+prop_UPair_Applicative_rightUnit = fcmp $ law_Applicative_rightUnit
+
+prop_UPair_Semicomonad_compose :: Fun (UPair B B) C
+                                   -> Fun (UPair B A) B
+                                   -> UPair B A
+                                   -> Property
+prop_UPair_Semicomonad_compose (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_compose g f
+
+prop_UPair_Semicomonad_assoc :: Fun (UPair B C) A
+                                 -> Fun (UPair B B) C
+                                 -> Fun (UPair B A) B
+                                 -> UPair B A
+                                 -> Property
+prop_UPair_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_assoc h g f
+
+prop_UPair_Semicomonad_extend :: Fun (UPair B B) C
+                                  -> Fun (UPair B A) B
+                                  -> UPair B A
+                                  -> Property
+prop_UPair_Semicomonad_extend (Fn g) (Fn f) =
+  fcmp $ law_Semicomonad_extend g f
+
+prop_UPair_Comonad_leftId :: UPair B A -> Property
+prop_UPair_Comonad_leftId = fcmp $ law_Comonad_leftId
+
+prop_UPair_Comonad_rightId :: Fun (UPair B A) B
+                               -> UPair B A
+                               -> Property
+prop_UPair_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
+prop_Cokleisli_UPair_Semigroupoid_assoc
+  :: Fun (UPair B C) A
+  -> Fun (UPair B B) C
+  -> Fun (UPair B A) B
+  -> UPair B A
+  -> Property
+prop_Cokleisli_UPair_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
+  fcmp $ hask $ law_Semigroupoid_assoc h' g' f'
+  where f' = Cokleisli f
+        g' = Cokleisli g
+        h' = Cokleisli h
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UPair_Category_leftId ::
+  Fun (UPair B A) B -> UPair B A -> Property
+prop_Cokleisli_UPair_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Cokleisli (UPair B)) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UPair_Category_rightId ::
+  Fun (UPair B A) B -> UPair B A -> Property
+prop_Cokleisli_UPair_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Cokleisli (UPair B)) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_UPair_ComonadStore_getPut :: (B, UPair B A) -> Property
+prop_UPair_ComonadStore_getPut = fcmp $ law_ComonadStore_getPut
+
+prop_UPair_ComonadStore_putPut :: ((B, B), UPair B A) -> Property
+prop_UPair_ComonadStore_putPut = fcmp $ law_ComonadStore_putPut
+
+prop_UPair_ComonadStore_putGet :: UPair B A -> Property
+prop_UPair_ComonadStore_putGet = fcmp $ law_ComonadStore_putGet
+
+prop_UPair_ComonadStore_extract :: UPair B A -> Property
+prop_UPair_ComonadStore_extract = fcmp $ law_ComonadStore_extract
+
+prop_UPair_ComonadStore_seek :: (B, UPair B A) -> Property
+prop_UPair_ComonadStore_seek = fcmp $ law_ComonadStore_extract
+
 
 
 prop_UIVector_Functor_id :: UIVector A -> Property
@@ -232,6 +387,12 @@ prop_UIVector_Semicomonad_assoc :: Fun (UIVector C) A
 prop_UIVector_Semicomonad_assoc (Fn h) (Fn g) (Fn f) =
   fcmp $ law_Semicomonad_assoc h g f
 
+prop_UIVector_Comonad_leftId :: UIVector A -> Property
+prop_UIVector_Comonad_leftId = fcmp $ law_Comonad_leftId
+
+prop_UIVector_Comonad_rightId :: Fun (UIVector A) B -> UIVector A -> Property
+prop_UIVector_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
 prop_Cokleisli_UIVector_Semigroupoid_assoc
   :: Fun (UIVector C) A
   -> Fun (UIVector B) C
@@ -244,3 +405,42 @@ prop_Cokleisli_UIVector_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
         g' = Cokleisli g
         h' = Cokleisli h
         hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UIVector_Category_leftId ::
+  Fun (UIVector A) B -> UIVector A -> Property
+prop_Cokleisli_UIVector_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Cokleisli UIVector) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_UIVector_Category_rightId ::
+  Fun (UIVector A) B -> UIVector A -> Property
+prop_Cokleisli_UIVector_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Cokleisli UIVector) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_UIVector_ComonadStore_getPut :: (NonNegative Int, UIVector A) -> Property
+prop_UIVector_ComonadStore_getPut (NonNegative i, xs) =
+  i < length xs ==>
+  cover 50 (i > 0) "non-trivial" $
+  fcmp law_ComonadStore_getPut (i, xs)
+
+prop_UIVector_ComonadStore_putPut ::
+  ((NonNegative Int, NonNegative Int), UIVector A) -> Property
+prop_UIVector_ComonadStore_putPut ((NonNegative i, NonNegative j), xs) =
+  i < length xs && j < length xs ==>
+  cover 50 (i > 0 && j > 0) "non-trivial" $
+  fcmp law_ComonadStore_putPut ((i, j), xs)
+
+prop_UIVector_ComonadStore_putGet :: UIVector A -> Property
+prop_UIVector_ComonadStore_putGet = fcmp law_ComonadStore_putGet
+
+prop_UIVector_ComonadStore_extract :: UIVector A -> Property
+prop_UIVector_ComonadStore_extract = fcmp law_ComonadStore_extract
+
+prop_UIVector_ComonadStore_seek :: (NonNegative Int, UIVector A) -> Property
+prop_UIVector_ComonadStore_seek (NonNegative i, xs) =
+  i < length xs ==>
+  cover 50 (i > 0) "non-trivial" $
+  fcmp law_ComonadStore_extract (i, xs)

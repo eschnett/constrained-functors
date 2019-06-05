@@ -16,6 +16,7 @@ import Control.Constrained.Prelude
 import Control.Applicative (ZipList(..))
 import Control.Constrained.Category
 import Data.Constraint
+import Data.Functor.Const
 import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
@@ -88,6 +89,12 @@ instance Functor Proxy where
   type Dom Proxy = (->)
   type Cod Proxy = (->)
   fmap _ = \_ -> Proxy
+
+instance Functor (Const a) where
+  proveFunctor = Sub Dict
+  type Dom (Const a) = (->)
+  type Cod (Const a) = (->)
+  fmap _ = \(Const x) -> Const x
 
 instance Functor Identity where
   proveFunctor = Sub Dict

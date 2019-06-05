@@ -7,6 +7,7 @@ import Prelude ()
 import Control.Constrained.Prelude
 
 import Control.Constrained.Functor
+import Data.Functor.Const
 import Data.Functor.Identity
 import qualified Data.Functor.Compose as F
 import qualified Data.Functor.Product as F
@@ -35,6 +36,14 @@ prop_Proxy_Functor_id = fcmp $ law_Functor_id
 
 prop_Proxy_Functor_compose :: Fun B C -> Fun A B -> Proxy A -> Property
 prop_Proxy_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
+
+
+
+prop_Const_Functor_id :: Const B A -> Property
+prop_Const_Functor_id = fcmp $ law_Functor_id
+
+prop_Const_Functor_compose :: Fun B C -> Fun A B -> Const B A -> Property
+prop_Const_Functor_compose (Fn g) (Fn f) = fcmp $ law_Functor_compose g f
 
 
 

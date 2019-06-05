@@ -118,6 +118,23 @@ prop_Tuple_Comonad_leftId = fcmp $ law_Comonad_leftId
 prop_Tuple_Comonad_rightId :: Fun (B, A) B -> (B, A) -> Property
 prop_Tuple_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
 
+-- Cokleisli?
+
+prop_Tuple_ComonadStore_getPut :: (B, (B, A)) -> Property
+prop_Tuple_ComonadStore_getPut = fcmp $ law_ComonadStore_getPut
+
+prop_Tuple_ComonadStore_putPut :: ((B, B), (B, A)) -> Property
+prop_Tuple_ComonadStore_putPut = fcmp $ law_ComonadStore_putPut
+
+prop_Tuple_ComonadStore_putGet :: (B, A) -> Property
+prop_Tuple_ComonadStore_putGet = fcmp $ law_ComonadStore_putGet
+
+prop_Tuple_ComonadStore_extract :: (B, A) -> Property
+prop_Tuple_ComonadStore_extract = fcmp $ law_ComonadStore_extract
+
+prop_Tuple_ComonadStore_seek :: (B, (B, A)) -> Property
+prop_Tuple_ComonadStore_seek = fcmp $ law_ComonadStore_extract
+
 
 
 prop_Either_Semicomonad_compose :: Fun (Either B B) C

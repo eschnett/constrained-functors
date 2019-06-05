@@ -20,7 +20,8 @@ import Data.Proxy
 
 
 
--- Semimonad?
+-- Semimonad
+-- Subcategories
 
 class (Functor f, Cod f ~ Dom f) => Monad f where
   {-# MINIMAL return, (join | (<=<)) #-}

@@ -62,6 +62,12 @@ prop_IVector_Semicomonad_extend (Fn g) (Fn f) =
 prop_IVector_Semicomonad_duplicate :: IVector A -> Property
 prop_IVector_Semicomonad_duplicate = fcmp $ law_Semicomonad_duplicate
 
+prop_IVector_Comonad_leftId :: IVector A -> Property
+prop_IVector_Comonad_leftId = fcmp $ law_Comonad_leftId
+
+prop_IVector_Comonad_rightId :: Fun (IVector A) B -> IVector A -> Property
+prop_IVector_Comonad_rightId (Fn f) = fcmp $ law_Comonad_rightId f
+
 prop_Cokleisli_IVector_Semigroupoid_assoc
   :: Fun (IVector C) A
   -> Fun (IVector B) C
@@ -74,3 +80,32 @@ prop_Cokleisli_IVector_Semigroupoid_assoc (Fn h) (Fn g) (Fn f) =
         g' = Cokleisli g
         h' = Cokleisli h
         hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_IVector_Category_leftId ::
+  Fun (IVector A) B -> IVector A -> Property
+prop_Cokleisli_IVector_Category_leftId (Fn f) =
+  fcmp $ hask $ law_Category_leftId @(Cokleisli IVector) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_Cokleisli_IVector_Category_rightId ::
+  Fun (IVector A) B -> IVector A -> Property
+prop_Cokleisli_IVector_Category_rightId (Fn f) =
+  fcmp $ hask $ law_Category_rightId @(Cokleisli IVector) f'
+  where f' = Cokleisli f
+        hask (Cokleisli p, Cokleisli q) = (p, q)
+
+prop_IVector_ComonadStore_getPut :: (Int, IVector A) -> Property
+prop_IVector_ComonadStore_getPut = fcmp $ law_ComonadStore_getPut
+
+prop_IVector_ComonadStore_putPut :: ((Int, Int), IVector A) -> Property
+prop_IVector_ComonadStore_putPut = fcmp $ law_ComonadStore_putPut
+
+prop_IVector_ComonadStore_putGet :: IVector A -> Property
+prop_IVector_ComonadStore_putGet = fcmp $ law_ComonadStore_putGet
+
+prop_IVector_ComonadStore_extract :: IVector A -> Property
+prop_IVector_ComonadStore_extract = fcmp $ law_ComonadStore_extract
+
+prop_IVector_ComonadStore_seek :: (Int, IVector A) -> Property
+prop_IVector_ComonadStore_seek = fcmp $ law_ComonadStore_extract
