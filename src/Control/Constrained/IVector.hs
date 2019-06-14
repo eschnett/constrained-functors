@@ -25,8 +25,8 @@ import Test.QuickCheck.Instances ()
 
 
 -- | A non-empty vector with iterator
-data IVector a = IVector { getIndex :: Int
-                         , getIVector :: V.Vector a
+data IVector a = IVector { getIndex :: !Int
+                         , getIVector :: !(V.Vector a)
                          }
   deriving (Eq, Ord, Read, Show, Generic)
 
@@ -53,6 +53,10 @@ instance Functor IVector where
 
 instance Foldable IVector where
   foldMap f = \(IVector _ xs) -> foldMap f xs
+  foldr f z (IVector _ xs) = V.foldr (P.curry f) z xs
+  foldl f z (IVector _ xs) = V.foldl (P.curry f) z xs
+  toList (IVector _ xs) = V.toList xs
+  length (IVector _ xs) = V.length xs
 
 instance Apply IVector where
   liftA2uu f = \(IVector i xs, IVector j ys) ->

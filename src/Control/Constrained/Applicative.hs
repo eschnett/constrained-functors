@@ -40,6 +40,7 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
           => Closed (Cod f)
           => Ok (Dom f) a => Ok (Dom f) b => Ok (Dom f) c
           => Dom f (p a b) c -> Cod f (f a) (Cod f (f b) (f c))
+  {-# INLINE liftA2u #-}
   liftA2u f = curry (liftA2uu f)
               \\ proveFunctor @f @a
               \\ proveFunctor @f @b
@@ -48,6 +49,7 @@ class (Functor f, Cartesian (Dom f), Cartesian (Cod f)) => Apply f where
             Closed (Dom f) => Closed (Cod f)
          => Ok (Dom f) a => Ok (Dom f) b => Ok (Dom f) c
          => Dom f a (Dom f b c) -> Cod f (f a) (Cod f (f b) (f c))
+  {-# INLINE liftA2 #-}
   liftA2 f = liftA2u (uncurry f)
 
 

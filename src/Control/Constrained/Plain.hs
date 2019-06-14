@@ -42,6 +42,7 @@ import Test.QuickCheck.Instances()
 
 
 
+-- | Consider also 'Storable' instead of 'Unbox'
 class (Binary a, U.Unbox a) => PCon a
 instance (Binary a, U.Unbox a) => PCon a
 
@@ -109,7 +110,7 @@ instance Arbitrary a => Arbitrary (PIdentity a) where
 instance CoArbitrary a => CoArbitrary (PIdentity a)
 instance Function a => Function (PIdentity a)
 
-data PTuple a b = PTuple a b
+data PTuple a b = PTuple !a !b
   deriving (Eq, Ord, Read, Show, Generic)
 
 instance (Binary a, Binary b) => Binary (PTuple a b)
@@ -124,7 +125,7 @@ instance Arbitrary (a, b) => Arbitrary (PTuple a b) where
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (PTuple a b)
 instance (Function a, Function b) => Function (PTuple a b)
 
-data PProduct f g a = PPair (f a) (g a)
+data PProduct f g a = PPair !(f a) !(g a)
   deriving (Eq, Ord, Read, Show, Generic)
 
 instance (Binary (f a), Binary (g a)) => Binary (PProduct f g a)
@@ -210,17 +211,29 @@ instance ( Functor f, Functor g, Dom f ~ Cod g
 
 instance Foldable PProxy where
   foldMap _ _ = mempty
+  foldr _ z _ = z
+  foldl _ z _ = z
+  toList _ = []
 
 instance Foldable PIdentity where
   foldMap (PFun f) (PIdentity x) = f x
+  foldr (PFun f) z (PIdentity x) = f (x, z)
+  foldl (PFun f) z (PIdentity x) = f (z, x)
+  toList (PIdentity x) = [x]
 
 instance PCon a => Foldable (PTuple a) where
   foldMap (PFun f) (PTuple _ x) = f x
+  foldr (PFun f) z (PTuple _ x) = f (x, z)
+  foldl (PFun f) z (PTuple _ x) = f (z, x)
+  toList (PTuple _ x) = [x]
 
 instance ( Foldable f, Foldable g, Dom f ~ Dom g, Cod f ~ Cod g
          , Dom f ~ (-#>), Cod f ~ (-#>)) =>
          Foldable (PProduct f g) where
-  foldMap f = \(PPair xs xs') -> foldMap f xs <> foldMap f xs'
+  foldMap f (PPair xs xs') = foldMap f xs <> foldMap f xs'
+  foldr f z (PPair xs xs') = foldr f (foldr f z xs') xs
+  foldl f z (PPair xs xs') = foldl f (foldl f z xs) xs'
+  toList (PPair xs xs') = toList xs ++ toList xs'
 
 instance ( Foldable f, Foldable g, Dom f ~ Cod g
          , Dom g ~ (-#>), Cod f ~ (-#>), Cod g ~ (-#>)) =>
@@ -229,9 +242,26 @@ instance ( Foldable f, Foldable g, Dom f ~ Cod g
              pc ~ PCompose f g
           => Monoid b => Ok (Dom pc) a => Ok (Dom pc) b
           => Dom pc a b -> pc a -> b
-  foldMap f = \(PCompose xss) -> foldMap (PFun (foldMap f)) xss
-    \\ proveFunctor @g @a
-  
+  foldMap f (PCompose xss) = foldMap (PFun (foldMap f)) xss
+                             \\ proveFunctor @g @a
+  foldr :: forall a b pc k p.
+           pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
+        => Ok k a => Ok k b
+        => k (p a b) b -> b -> pc a -> b
+  foldr f z (PCompose xss) = foldr (PFun \(xs, z') -> foldr f z' xs) z xss
+                             \\ proveFunctor @g @a
+  foldl :: forall a b pc k p.
+           pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
+        => Ok k a => Ok k b
+        => k (p a b) a -> a -> pc b -> a
+  foldl f z (PCompose xss) = foldl (PFun \(z', xs) -> foldl f z' xs) z xss
+                             \\ proveFunctor @g @b
+  toList :: forall a pc.
+            pc ~ PCompose f g
+         => Ok (Dom pc) a => pc a -> [a]
+  toList (PCompose xss) = P.concat (fmap toList (toList xss))
+                          \\ proveFunctor @g @a
+
 
 
 instance Apply PProxy where
@@ -315,7 +345,7 @@ instance Arbitrary a => Arbitrary (UIdentity a) where
 instance CoArbitrary a => CoArbitrary (UIdentity a)
 instance Function a => Function (UIdentity a)
 
-data UPair a b = UPair { ufst :: a, usnd :: b}
+data UPair a b = UPair { ufst :: !a, usnd :: !b}
   deriving (Eq, Ord, Read, Show, Generic)
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (UPair a b) where
@@ -323,8 +353,8 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (UPair a b) where
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (UPair a b)
 instance (Function a, Function b) => Function (UPair a b)
 
-data UIVector a = UIVector { getUIndex :: Int
-                           , getUIVector :: U.Vector a
+data UIVector a = UIVector { getUIndex :: !Int
+                           , getUIVector :: !(U.Vector a)
                            }
   deriving (Eq, Ord, Read, Show, Generic)
 
@@ -355,6 +385,9 @@ instance Functor UIdentity where
 
 instance Foldable UIdentity where
   foldMap (PFun f) (UIdentity x) = f x
+  foldr (PFun f) z (UIdentity x) = f (x, z)
+  foldl (PFun f) z (UIdentity x) = f (z, x)
+  toList (UIdentity x) = [x]
 
 instance Apply UIdentity where
   liftA2uu (PFun f) = \(UIdentity x, UIdentity y) -> UIdentity (f (x, y))
@@ -381,6 +414,9 @@ instance Functor (UPair a) where
 
 instance Foldable (UPair a) where
   foldMap (PFun f) (UPair _ x) = f x
+  foldr (PFun f) z (UPair _ x) = f (x, z)
+  foldl (PFun f) z (UPair _ x) = f (z, x)
+  toList (UPair _ x) = [x]
 
 instance Semigroup a => Apply (UPair a) where
   liftA2uu (PFun f) = \(UPair a x, UPair b y) -> UPair (a <> b) (f (x, y))
@@ -413,13 +449,23 @@ instance Functor U.Vector where
   proveFunctor = Sub Dict
   type Dom U.Vector = (-#>)
   type Cod U.Vector = (->)
+  {-# INLINE fmap #-}
   fmap (PFun f) = U.map f
 
 instance Foldable U.Vector where
+  {-# INLINE foldMap #-}
   foldMap (PFun f) = U.foldl (\r x -> r <> f x) mempty
+  {-# INLINE foldr #-}
+  foldr (PFun f) z = U.foldr (P.curry f) z
+  {-# INLINE foldl #-}
+  foldl (PFun f) z = U.foldl (P.curry f) z
+  {-# INLINE toList #-}
+  toList = U.toList
+  {-# INLINE length #-}
   length = U.length
 
 instance Apply U.Vector where
+  {-# INLINE liftA2uu #-}
   liftA2uu (PFun f) = uncurry (U.zipWith (curry f))
 
 
@@ -428,15 +474,27 @@ instance Functor UIVector where
   type Dom UIVector = (-#>)
   type Cod UIVector = (->)
   proveFunctor = Sub Dict
+  {-# INLINE fmap #-}
   fmap f = \(UIVector i xs) -> UIVector i (fmap f xs)
 
 instance Foldable UIVector where
-  foldMap f = \(UIVector _ xs) -> foldMap f xs
-  length = \(UIVector _ xs) -> U.length xs
+  {-# INLINE foldMap #-}
+  foldMap f (UIVector _ xs) = foldMap f xs
+  {-# INLINE foldr #-}
+  foldr f z (UIVector _ xs) = foldr f z xs
+  {-# INLINE foldl #-}
+  foldl f z (UIVector _ xs) = foldl f z xs
+  {-# INLINE toList #-}
+  toList (UIVector _ xs) = U.toList xs
+  {-# INLINE length #-}
+  length (UIVector _ xs) = U.length xs
 
 instance Apply UIVector where
+  {-# INLINE liftA2uu #-}
   liftA2uu (PFun f) = \(UIVector i xs, UIVector j ys) ->
                         UIVector (min i j) (U.zipWith (curry f) xs ys)
+  -- liftA2uu (PFun f) = \(UIVector i xs, UIVector j ys) ->
+  --                       UIVector (min i j) (U.fromListN (min (length xs) (length ys)) (P.zipWith (curry f) (U.toList xs) (U.toList ys)))
 
 instance Semicomonad UIVector where
   extend f = \(UIVector i xs) ->

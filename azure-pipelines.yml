@@ -25,7 +25,9 @@ steps:
 - script: |
     export PATH=$HOME/.local/bin:$PATH
     # Build the package, its tests, and its docs and run the tests
-    stack test --haddock --no-haddock-deps
+    stack test
     stack run
+    stack bench
+    stack haddock --no-haddock-deps
     stack install
   displayName: Test Package
