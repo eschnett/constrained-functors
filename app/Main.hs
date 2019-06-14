@@ -170,8 +170,8 @@ output = encodeFile
 
 
 
-main':: IO ()
-main'= do putStrLn "Constrained functors: Numeric functions"
+main:: IO ()
+main = do putStrLn "Constrained functors: Numeric functions"
           let x = coords @Double
           putStrLn $ "L2[x] = " ++ show (norm2 x)
           let u0 = setups x
@@ -200,15 +200,3 @@ main'= do putStrLn "Constrained functors: Numeric functions"
                P.when (i `mod` 10 == 0) $
                  output (outputFilePath i) vars
           putStrLn "Done."
-
-
-
-bench_UIVector_add :: forall a. Enum a => Num a => PCon a => Int -> a -> a
-bench_UIVector_add n z = foldl add z $ liftA2u add xs ys
-  where xs = uivector $ U.fromListN n [0 .. fromIntegral n - 1]
-        ys = uivector $
-             U.fromListN n [fromIntegral n - 1, fromIntegral n - 2 .. 0]
-        add = PFun \(x, y) -> x + y
-
-main :: IO ()
-main = putStrLn $ show $ bench_UIVector_add @Double 1000000 0

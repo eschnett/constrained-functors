@@ -53,8 +53,8 @@ instance Functor IVector where
 
 instance Foldable IVector where
   foldMap f = \(IVector _ xs) -> foldMap f xs
-  foldr f z (IVector _ xs) = V.foldr (P.curry f) z xs
-  foldl f z (IVector _ xs) = V.foldl (P.curry f) z xs
+  foldru f z (IVector _ xs) = V.foldr (P.curry f) z xs
+  foldlu f z (IVector _ xs) = V.foldl (P.curry f) z xs
   toList (IVector _ xs) = V.toList xs
   length (IVector _ xs) = V.length xs
 

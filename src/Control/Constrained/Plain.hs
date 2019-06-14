@@ -211,28 +211,28 @@ instance ( Functor f, Functor g, Dom f ~ Cod g
 
 instance Foldable PProxy where
   foldMap _ _ = mempty
-  foldr _ z _ = z
-  foldl _ z _ = z
+  foldru _ z _ = z
+  foldlu _ z _ = z
   toList _ = []
 
 instance Foldable PIdentity where
   foldMap (PFun f) (PIdentity x) = f x
-  foldr (PFun f) z (PIdentity x) = f (x, z)
-  foldl (PFun f) z (PIdentity x) = f (z, x)
+  foldru (PFun f) z (PIdentity x) = f (x, z)
+  foldlu (PFun f) z (PIdentity x) = f (z, x)
   toList (PIdentity x) = [x]
 
 instance PCon a => Foldable (PTuple a) where
   foldMap (PFun f) (PTuple _ x) = f x
-  foldr (PFun f) z (PTuple _ x) = f (x, z)
-  foldl (PFun f) z (PTuple _ x) = f (z, x)
+  foldru (PFun f) z (PTuple _ x) = f (x, z)
+  foldlu (PFun f) z (PTuple _ x) = f (z, x)
   toList (PTuple _ x) = [x]
 
 instance ( Foldable f, Foldable g, Dom f ~ Dom g, Cod f ~ Cod g
          , Dom f ~ (-#>), Cod f ~ (-#>)) =>
          Foldable (PProduct f g) where
   foldMap f (PPair xs xs') = foldMap f xs <> foldMap f xs'
-  foldr f z (PPair xs xs') = foldr f (foldr f z xs') xs
-  foldl f z (PPair xs xs') = foldl f (foldl f z xs) xs'
+  foldru f z (PPair xs xs') = foldru f (foldru f z xs') xs
+  foldlu f z (PPair xs xs') = foldlu f (foldlu f z xs) xs'
   toList (PPair xs xs') = toList xs ++ toList xs'
 
 instance ( Foldable f, Foldable g, Dom f ~ Cod g
@@ -244,18 +244,18 @@ instance ( Foldable f, Foldable g, Dom f ~ Cod g
           => Dom pc a b -> pc a -> b
   foldMap f (PCompose xss) = foldMap (PFun (foldMap f)) xss
                              \\ proveFunctor @g @a
-  foldr :: forall a b pc k p.
-           pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
-        => Ok k a => Ok k b
-        => k (p a b) b -> b -> pc a -> b
-  foldr f z (PCompose xss) = foldr (PFun \(xs, z') -> foldr f z' xs) z xss
+  foldru :: forall a b pc k p.
+            pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
+         => Ok k a => Ok k b
+         => k (p a b) b -> b -> pc a -> b
+  foldru f z (PCompose xss) = foldru (PFun \(xs, z') -> foldru f z' xs) z xss
                              \\ proveFunctor @g @a
-  foldl :: forall a b pc k p.
-           pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
-        => Ok k a => Ok k b
-        => k (p a b) a -> a -> pc b -> a
-  foldl f z (PCompose xss) = foldl (PFun \(z', xs) -> foldl f z' xs) z xss
-                             \\ proveFunctor @g @b
+  foldlu :: forall a b pc k p.
+            pc ~ PCompose f g => k ~ Dom pc => Cartesian k => p ~ Product k
+         => Ok k a => Ok k b
+         => k (p a b) a -> a -> pc b -> a
+  foldlu f z (PCompose xss) = foldlu (PFun \(z', xs) -> foldlu f z' xs) z xss
+                              \\ proveFunctor @g @b
   toList :: forall a pc.
             pc ~ PCompose f g
          => Ok (Dom pc) a => pc a -> [a]
@@ -385,8 +385,8 @@ instance Functor UIdentity where
 
 instance Foldable UIdentity where
   foldMap (PFun f) (UIdentity x) = f x
-  foldr (PFun f) z (UIdentity x) = f (x, z)
-  foldl (PFun f) z (UIdentity x) = f (z, x)
+  foldru (PFun f) z (UIdentity x) = f (x, z)
+  foldlu (PFun f) z (UIdentity x) = f (z, x)
   toList (UIdentity x) = [x]
 
 instance Apply UIdentity where
@@ -414,8 +414,8 @@ instance Functor (UPair a) where
 
 instance Foldable (UPair a) where
   foldMap (PFun f) (UPair _ x) = f x
-  foldr (PFun f) z (UPair _ x) = f (x, z)
-  foldl (PFun f) z (UPair _ x) = f (z, x)
+  foldru (PFun f) z (UPair _ x) = f (x, z)
+  foldlu (PFun f) z (UPair _ x) = f (z, x)
   toList (UPair _ x) = [x]
 
 instance Semigroup a => Apply (UPair a) where
@@ -455,10 +455,10 @@ instance Functor U.Vector where
 instance Foldable U.Vector where
   {-# INLINE foldMap #-}
   foldMap (PFun f) = U.foldl (\r x -> r <> f x) mempty
-  {-# INLINE foldr #-}
-  foldr (PFun f) z = U.foldr (P.curry f) z
-  {-# INLINE foldl #-}
-  foldl (PFun f) z = U.foldl (P.curry f) z
+  {-# INLINE foldru #-}
+  foldru (PFun f) z = U.foldr (P.curry f) z
+  {-# INLINE foldlu #-}
+  foldlu (PFun f) z = U.foldl (P.curry f) z
   {-# INLINE toList #-}
   toList = U.toList
   {-# INLINE length #-}
@@ -480,10 +480,10 @@ instance Functor UIVector where
 instance Foldable UIVector where
   {-# INLINE foldMap #-}
   foldMap f (UIVector _ xs) = foldMap f xs
-  {-# INLINE foldr #-}
-  foldr f z (UIVector _ xs) = foldr f z xs
-  {-# INLINE foldl #-}
-  foldl f z (UIVector _ xs) = foldl f z xs
+  {-# INLINE foldru #-}
+  foldru f z (UIVector _ xs) = foldru f z xs
+  {-# INLINE foldlu #-}
+  foldlu f z (UIVector _ xs) = foldlu f z xs
   {-# INLINE toList #-}
   toList (UIVector _ xs) = U.toList xs
   {-# INLINE length #-}
